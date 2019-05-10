@@ -1,0 +1,31 @@
+[package]
+name = "polyio"
+version = "0.0.0"
+authors = ["Daniel Mueller <deso@posteo.net>"]
+edition = "2018"
+license = "GPL-3.0-or-later"
+homepage = "https://github.com/d-e-s-o/polyio"
+repository = "https://github.com/d-e-s-o/polyio.git"
+readme = "README.md"
+categories = [
+  "api-bindings",
+  "asynchronous",
+  "network-programming",
+  "web-programming::http-client",
+  "web-programming::websocket"
+]
+keywords = ["trading", "finance", "async", "stocks"]
+description = """
+A create for interacting with the Polygon API at polygon.io.
+"""
+
+[dependencies]
+bytes = "0.4"
+futures = "0.1"
+log = "0.4"
+tokio-codec = "0.1"
+
+[dev-dependencies]
+env_logger = {version = "0.6", default-features = false}
+test-env-log = "0.1"
+tokio = "0.1"
