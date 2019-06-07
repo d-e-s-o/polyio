@@ -6,7 +6,6 @@ from argparse import (
   ArgumentTypeError,
 )
 from asyncio import (
-  coroutine,
   get_event_loop,
   sleep,
 )
@@ -37,8 +36,7 @@ package which can be installed, for example, through pip:
 """)
 
 
-@coroutine
-def received_message(msg):
+async def received_message(msg):
   """Process a received message by simply emitting it to stdout."""
   if msg.subject.startswith("A."):
     type_ = b"A"
@@ -65,15 +63,14 @@ def received_message(msg):
   stdout.buffer.flush()
 
 
-@coroutine
-def closed(loop):
+async def closed(loop):
   """A callback invoked when the NATS connection is closed."""
   print("Closed connection to server.", file=stderr)
-  yield from sleep(0.1, loop=loop)
+  await sleep(0.1, loop=loop)
   loop.stop()
 
 
-def run(api_key, events, loop):
+async def run(api_key, events, loop):
   """Connect to Polygon, subscribe to a set of events, and stream."""
   # We import this non-standard package only locally to ensure that the program
   # will at least print a reasonable description even if the package is not
@@ -91,7 +88,7 @@ def run(api_key, events, loop):
     "closed_cb": lambda: closed(loop),
   }
 
-  yield from nats.connect(**options)
+  await nats.connect(**options)
   print("Connected to Polygon", file=stderr)
 
   def handle_signal():
@@ -104,7 +101,7 @@ def run(api_key, events, loop):
     loop.add_signal_handler(signal, handle_signal)
 
   for event in events:
-    yield from nats.subscribe(event, cb=received_message)
+    await nats.subscribe(event, cb=received_message)
 
 
 def event_type(event):
