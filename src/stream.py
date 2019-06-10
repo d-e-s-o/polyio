@@ -24,6 +24,10 @@ from sys import (
 from textwrap import (
   fill,
 )
+from urllib.parse import (
+  urlsplit,
+  urlunsplit,
+)
 
 POLYGON_API_KEY = "POLYGON_API_KEY"
 DESCRIPTION = fill(f"""\
@@ -70,7 +74,22 @@ async def closed(loop):
   loop.stop()
 
 
-async def run(api_key, events, loop):
+def add_auth_info(url, api_key):
+  """Inject authentication information in the form of an API key into the given URL."""
+  parts = urlsplit(url)
+  if len(parts.scheme) == 0:
+    parts = urlsplit("nats://%s" % url)
+
+  if parts.username is not None or parts.password is not None:
+    raise RuntimeError("server address %s already contains authentication information", url)
+
+  scheme, netloc, path, params, fragment = parts
+  netloc = "%s@%s" % (api_key, netloc)
+  parts = (scheme, netloc, path, params, fragment)
+  return urlunsplit(parts)
+
+
+async def run(servers, api_key, events, loop):
   """Connect to Polygon, subscribe to a set of events, and stream."""
   # We import this non-standard package only locally to ensure that the program
   # will at least print a reasonable description even if the package is not
@@ -79,11 +98,7 @@ async def run(api_key, events, loop):
   nats = NATS()
 
   options = {
-    "servers": [
-      "nats://{}@nats1.polygon.io:31101".format(api_key),
-      "nats://{}@nats2.polygon.io:31102".format(api_key),
-      "nats://{}@nats3.polygon.io:31103".format(api_key)
-    ],
+    "servers": list(map(lambda server: add_auth_info(server, api_key), servers)),
     "io_loop": loop,
     "closed_cb": lambda: closed(loop),
   }
@@ -130,10 +145,20 @@ def main(args):
          "respectively. E.g., T.MSFT " "will subscribe to trades of Microsoft "
          "stock.",
   )
+  parser.add_argument(
+    "-s", "--server", action="append", metavar="servers", nargs=1,
+    dest="servers", required=True,
+    help="A server to connect to and stream from. Can be supplied multiple "
+         "times.",
+  )
   ns = parser.parse_args(args)
 
+  # The namespace's appended list arguments are stored as a list of list
+  # of strings. Convert them to a list of strings.
+  servers = [x for x, in ns.servers]
+
   loop = get_event_loop()
-  loop.run_until_complete(run(api_key, ns.events, loop))
+  loop.run_until_complete(run(servers, api_key, ns.events, loop))
   loop.run_forever()
   loop.close()
 
