@@ -27,6 +27,7 @@ use tokio_codec::LinesCodec;
 use crate::stock::Aggregate;
 use crate::stock::Quote;
 use crate::stock::Trade;
+use crate::Str;
 use crate::stream::stream_with_decoder;
 
 /// The Python script connecting to the Polygon API and streaming
@@ -73,6 +74,50 @@ impl From<IoError> for EventError {
 }
 
 
+/// Possible subscriptions for a stock.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Stock {
+  /// Subscribe to the stock with the given symbol.
+  Symbol(Str),
+  /// Subscribe to an event type for all available stocks.
+  All,
+}
+
+impl Display for Stock {
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    match self {
+      Stock::Symbol(symbol) => write!(fmt, "{}", symbol),
+      Stock::All => write!(fmt, "*"),
+    }
+  }
+}
+
+
+/// An enum describing a subscription.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Subscription {
+  /// A type representing second aggregates for the given stock.
+  SecondAggregates(Stock),
+  /// A type representing minute aggregates for the given stock.
+  MinuteAggregates(Stock),
+  /// A type representing trades for the given stock.
+  Trades(Stock),
+  /// A type representing quotes for the given stock.
+  Quotes(Stock),
+}
+
+impl Display for Subscription {
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    match self {
+      Subscription::SecondAggregates(stock) => write!(fmt, "A.{}", stock.to_string()),
+      Subscription::MinuteAggregates(stock) => write!(fmt, "AM.{}", stock.to_string()),
+      Subscription::Trades(stock) => write!(fmt, "T.{}", stock.to_string()),
+      Subscription::Quotes(stock) => write!(fmt, "Q.{}", stock.to_string()),
+    }
+  }
+}
+
+
 /// An enum representing the type of event we received from Polygon.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(tag = "ev")]
@@ -93,13 +138,15 @@ pub enum Event {
 
 
 /// Create a command that stream data from the Polygon service.
-fn polygon_command<I, S>(api_key: &OsStr, symbols: I) -> Command
+fn polygon_command<'s, S>(api_key: &OsStr, subscriptions: S) -> Command
 where
-  I: IntoIterator<Item = S>,
-  S: AsRef<OsStr>,
+  S: IntoIterator<Item = &'s Subscription>,
 {
   let mut command = Command::new(POLYGON_STREAM);
-  command.env_clear().env(POLYGON_API_KEY, api_key).args(symbols);
+  command
+    .env_clear()
+    .env(POLYGON_API_KEY, api_key)
+    .args(subscriptions.into_iter().map(|sub| sub.to_string()));
 
   if let Some(path) = var_os(PYTHONPATH) {
     command.env(PYTHONPATH, path);
@@ -125,15 +172,14 @@ fn stream_events(command: Command) -> IoResult<impl Stream<Item = Event, Error =
 
 
 /// Subscribe to and stream events from the Polygon service.
-pub fn subscribe<I, S>(
+pub fn subscribe<'s, S>(
   api_key: &OsStr,
-  symbols: I,
+  subscriptions: S,
 ) -> IoResult<impl Stream<Item = Event, Error = EventError>>
 where
-  I: IntoIterator<Item = S>,
-  S: AsRef<OsStr>,
+  S: IntoIterator<Item = &'s Subscription>,
 {
-  let command = polygon_command(api_key, symbols);
+  let command = polygon_command(api_key, subscriptions);
   stream_events(command)
 }
 

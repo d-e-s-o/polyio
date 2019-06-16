@@ -4,3 +4,7 @@
 mod events;
 mod stock;
 mod stream;
+
+use std::borrow::Cow;
+
+type Str = Cow<'static, str>;
