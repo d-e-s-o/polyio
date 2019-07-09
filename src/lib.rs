@@ -6,7 +6,6 @@ mod env;
 mod error;
 mod events;
 mod stock;
-mod stream;
 
 use std::borrow::Cow;
 
