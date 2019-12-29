@@ -1,8 +1,8 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+mod api_info;
 mod client;
-mod env;
 mod error;
 mod events;
 mod stock;

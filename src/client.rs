@@ -6,7 +6,7 @@ use futures::stream::Stream;
 
 use ratsio::error::RatsioError;
 
-use crate::env::ApiInfo;
+use crate::api_info::ApiInfo;
 use crate::error::Error;
 use crate::events::Event;
 use crate::events::EventError;
