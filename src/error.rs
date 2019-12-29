@@ -6,7 +6,19 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
+use url::ParseError;
+
 use crate::Str;
+
+
+pub fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
+  write!(fmt, "{}", err)?;
+  if let Some(src) = err.source() {
+    write!(fmt, ": ")?;
+    fmt_err(src, fmt)?;
+  }
+  Ok(())
+}
 
 
 /// An error type used by this crate.
@@ -14,14 +26,23 @@ use crate::Str;
 pub enum Error {
   /// An error directly originating in this module.
   Str(Str),
+  /// An URL parsing error.
+  Url(ParseError),
 }
 
 impl Display for Error {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
       Error::Str(s) => write!(fmt, "{}", s),
+      Error::Url(err) => fmt_err(err, fmt),
     }
   }
 }
 
 impl StdError for Error {}
+
+impl From<ParseError> for Error {
+  fn from(e: ParseError) -> Self {
+    Error::Url(e)
+  }
+}

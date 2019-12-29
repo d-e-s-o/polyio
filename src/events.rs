@@ -27,6 +27,7 @@ use serde_json::Error as JsonError;
 use serde_json::from_slice as from_json;
 
 use crate::error::Error;
+use crate::error::fmt_err;
 use crate::stock::Aggregate;
 use crate::stock::Quote;
 use crate::stock::Trade;
@@ -38,16 +39,6 @@ const POLYGON_CLUSTER: [&str; 3] = [
   "nats2.polygon.io:31102",
   "nats3.polygon.io:31103",
 ];
-
-fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
-  write!(fmt, "{}", err)?;
-  if let Some(src) = err.source() {
-    write!(fmt, ": ")?;
-    fmt_err(src, fmt)?;
-  }
-  Ok(())
-}
-
 
 #[derive(Debug)]
 pub enum EventError {
