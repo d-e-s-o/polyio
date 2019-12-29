@@ -6,7 +6,7 @@ use futures::stream::Stream;
 
 use ratsio::error::RatsioError;
 
-use crate::env::api_info;
+use crate::env::ApiInfo;
 use crate::error::Error;
 use crate::events::Event;
 use crate::events::EventError;
@@ -18,17 +18,15 @@ use crate::events::Subscription;
 /// interacting with the Polygon API.
 #[derive(Debug)]
 pub struct Client {
-  api_key: String,
+  api_info: ApiInfo,
 }
 
 impl Client {
   /// Create a new `Client` with information from the environment.
   pub fn from_env() -> Result<Self, Error> {
-    let api_key = api_info()?
-      .into_string()
-      .map_err(|_| Error::Str(format!("API key is not a valid utf-8 string").into()))?;
+    let api_info = ApiInfo::from_env()?;
 
-    Ok(Self { api_key })
+    Ok(Self { api_info })
   }
 
   /// Subscribe to the given stream in order to receive updates.
@@ -42,6 +40,6 @@ impl Client {
   where
     S: IntoIterator<Item = Subscription>,
   {
-    subscribe(&self.api_key, subscriptions)
+    subscribe(&self.api_info.api_key, subscriptions)
   }
 }
