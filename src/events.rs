@@ -6,13 +6,13 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
-use futures::future::Either;
-use futures::future::err;
-use futures::future::ok;
-use futures::future::done;
-use futures::Future;
-use futures::stream::empty;
-use futures::Stream;
+use futures01::future::Either;
+use futures01::future::err;
+use futures01::future::ok;
+use futures01::future::done;
+use futures01::Future;
+use futures01::stream::empty;
+use futures01::Stream;
 
 use log::debug;
 
@@ -294,11 +294,11 @@ mod tests {
   use std::collections::BTreeMap;
   use std::net::SocketAddr;
 
-  use futures::future::ok;
-  use futures::Future;
-  use futures::Sink;
-  use futures::Stream;
-  use futures::sync::mpsc;
+  use futures01::future::ok;
+  use futures01::Future;
+  use futures01::Sink;
+  use futures01::Stream;
+  use futures01::sync::mpsc;
 
   use num_decimal::Num;
 

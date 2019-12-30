@@ -1,8 +1,8 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::Future;
-use futures::stream::Stream;
+use futures01::Future;
+use futures01::stream::Stream;
 
 use ratsio::error::RatsioError;
 

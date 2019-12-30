@@ -20,7 +20,7 @@ A create for interacting with the Polygon API at polygon.io.
 """
 
 [dependencies]
-futures = "0.1"
+futures01 = {version = "0.1", package = "futures"}
 log = "0.4"
 num-decimal = {version = "0.1", features = ["serde"]}
 ratsio = "0.2"
