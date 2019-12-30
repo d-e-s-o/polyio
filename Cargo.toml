@@ -20,12 +20,14 @@ A create for interacting with the Polygon API at polygon.io.
 """
 
 [dependencies]
+futures = {version = "0.3", default-features = false}
 futures01 = {version = "0.1", package = "futures"}
 log = "0.4"
 num-decimal = {version = "0.1", features = ["serde"]}
 ratsio = "0.2"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
+tungstenite = {package = "async-tungstenite", version = "0.2"}
 url = "2.0"
 
 [dev-dependencies]

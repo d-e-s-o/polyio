@@ -5,6 +5,7 @@ mod api_info;
 mod client;
 mod error;
 mod events;
+mod handshake;
 mod stock;
 
 use std::borrow::Cow;
