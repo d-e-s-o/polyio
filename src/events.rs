@@ -6,58 +6,27 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
-use futures01::future::Either;
-use futures01::future::err;
-use futures01::future::ok;
-use futures01::future::done;
-use futures01::Future;
-use futures01::stream::empty;
-use futures01::Stream;
+use async_tls::TlsConnector;
+
+use futures::Stream;
 
 use log::debug;
 
-use ratsio::error::RatsioError;
-use ratsio::nats_client::NatsClient;
-use ratsio::nats_client::NatsClientOptions;
-use ratsio::ops::Message;
-use ratsio::ops::Subscribe;
-
 use serde::Deserialize;
 use serde_json::Error as JsonError;
-use serde_json::from_slice as from_json;
 
+use tungstenite::connect_async_with_tls_connector;
+use tungstenite::tungstenite::Error as WebSocketError;
+
+use websocket_util::stream as do_stream;
+
+use crate::api_info::ApiInfo;
 use crate::error::Error;
-use crate::error::fmt_err;
+use crate::handshake::subscribe;
 use crate::stock::Aggregate;
 use crate::stock::Quote;
 use crate::stock::Trade;
 use crate::Str;
-
-
-const POLYGON_CLUSTER: [&str; 3] = [
-  "nats1.polygon.io:31101",
-  "nats2.polygon.io:31102",
-  "nats3.polygon.io:31103",
-];
-
-#[derive(Debug)]
-pub enum EventError {
-  Json(JsonError),
-  Ratsio(RatsioError),
-  Str(Str),
-}
-
-impl Display for EventError {
-  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
-    match self {
-      EventError::Json(err) => fmt_err(err, fmt),
-      EventError::Ratsio(err) => write!(fmt, "{}", err),
-      EventError::Str(err) => write!(fmt, "{}", err),
-    }
-  }
-}
-
-impl StdError for EventError {}
 
 
 /// Possible subscriptions for a stock.
@@ -130,160 +99,45 @@ impl Event {
       _ => None,
     }
   }
+
+  #[cfg(test)]
+  fn to_quote(&self) -> Option<&Quote> {
+    match self {
+      Event::Quote(quote) => Some(quote),
+      _ => None,
+    }
+  }
 }
 
 
-fn do_subscribe<S>(
-  client: &NatsClient,
-  subscriptions: S,
-) -> Result<impl Stream<Item = Message, Error = RatsioError>, RatsioError>
-where
-  S: IntoIterator<Item = Subscription>,
-{
-  let stream = empty();
-  let mut iter = subscriptions.into_iter();
+/// A struct representing a number of events that occurred at the same
+/// time.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Events(Vec<Event>);
 
-  // TODO: Right now we only support up to four subscriptions.
-  //       Unfortunately ratsio does not allow us to simply
-  //       subscribe to multiple sources exposed through one stream
-  //       and so we create a new stream for each subscription.
-  //       Because we want to expose all of them as a single stream
-  //       (of a single opaque type) we have to add each
-  //       subscription on demand.
-  let stream = if let Some(subscription) = iter.next() {
-    let other = client
-      .subscribe({
-        Subscribe::builder()
-          .subject(subscription.to_string().into())
-          .build()?
-      })
-      .flatten_stream();
-
-    Either::A(stream.select(other))
-  } else {
-    Either::B(stream)
-  };
-
-  let stream = if let Some(subscription) = iter.next() {
-    let other = client
-      .subscribe({
-        Subscribe::builder()
-          .subject(subscription.to_string().into())
-          .build()?
-      })
-      .flatten_stream();
-
-    Either::A(stream.select(other))
-  } else {
-    Either::B(stream)
-  };
-
-  let stream = if let Some(subscription) = iter.next() {
-    let other = client
-      .subscribe({
-        Subscribe::builder()
-          .subject(subscription.to_string().into())
-          .build()?
-      })
-      .flatten_stream();
-
-    Either::A(stream.select(other))
-  } else {
-    Either::B(stream)
-  };
-
-  let stream = if let Some(subscription) = iter.next() {
-    let other = client
-      .subscribe({
-        Subscribe::builder()
-          .subject(subscription.to_string().into())
-          .build()?
-      })
-      .flatten_stream();
-
-    Either::A(stream.select(other))
-  } else {
-    Either::B(stream)
-  };
-
-  assert_eq!(iter.next(), None, "only up to four subscriptions are supported currently");
-
-  Ok(stream)
-}
-
-
-fn subscribe_to_cluster<'c, C, S>(
-  api_key: &str,
-  cluster: C,
-  subscriptions: S,
-) -> Result<
-  impl Future<Item = impl Stream<Item = Event, Error = EventError>, Error = RatsioError>,
-  Error,
->
-where
-  C: Into<Vec<String>>,
-  S: IntoIterator<Item = Subscription>,
-{
-  let options = NatsClientOptions::builder()
-    .echo(true)
-    .verbose(true)
-    .cluster_uris(cluster.into())
-    .auth_token(api_key)
-    .build()
-    .map_err(|err| Error::Str(err.into()))?;
-
-  debug!("NATS client options: {:?}", options);
-
-  let stream = NatsClient::from_options(options)
-    .and_then(|client| NatsClient::connect(&client))
-    // TODO: Use client.add_reconnect_handler?
-    .and_then(|client| {
-      let stream = do_subscribe(&client, subscriptions)
-        // TODO: Should not unwrap!
-        .unwrap()
-        .map_err(EventError::Ratsio)
-        .and_then(|msg| {
-          debug!("Received message: {:?}", &msg);
-          if msg.subject.starts_with("A.") {
-            done(from_json::<Aggregate>(&msg.payload)
-              .map(Event::SecondAggregate)
-              .map_err(EventError::Json))
-          } else if msg.subject.starts_with("AM.") {
-            done(from_json::<Aggregate>(&msg.payload)
-              .map(Event::MinuteAggregate)
-              .map_err(EventError::Json))
-          } else if msg.subject.starts_with("T.") {
-            done(from_json::<Trade>(&msg.payload)
-              .map(Event::Trade)
-              .map_err(EventError::Json))
-          } else if msg.subject.starts_with("Q.") {
-            done(from_json::<Quote>(&msg.payload)
-              .map(Event::Quote)
-              .map_err(EventError::Json))
-          } else {
-            err(EventError::Str(format!("received unexpected subject: {}", msg.subject).into()))
-          }
-        });
-
-      ok(stream)
-    });
-
-  Ok(stream)
-}
 
 /// Subscribe to and stream events from the Polygon service.
-pub fn subscribe<S>(
-  api_key: &str,
+pub async fn stream<S>(
+  api_info: ApiInfo,
   subscriptions: S,
-) -> Result<
-  impl Future<Item = impl Stream<Item = Event, Error = EventError>, Error = RatsioError>,
-  Error,
->
+) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
 where
   S: IntoIterator<Item = Subscription>,
 {
-  let cluster = POLYGON_CLUSTER.iter().map(|x| x.to_string()).collect::<Vec<_>>();
-  subscribe_to_cluster(api_key, cluster, subscriptions)
+  let ApiInfo {
+    stream_url: url,
+    api_key,
+  } = api_info;
+
+  debug!("connecting to {}", &url);
+
+  let connector = Some(TlsConnector::default());
+  let (mut stream, _) = connect_async_with_tls_connector(url, connector).await?;
+
+  subscribe(&mut stream, api_key, subscriptions).await?;
+
+  let stream = do_stream(stream).await;
+  Ok(stream)
 }
 
 
@@ -291,121 +145,64 @@ where
 mod tests {
   use super::*;
 
-  use std::collections::BTreeMap;
-  use std::net::SocketAddr;
+  use std::future::Future;
 
-  use futures01::future::ok;
-  use futures01::Future;
-  use futures01::Sink;
-  use futures01::Stream;
-  use futures01::sync::mpsc;
-
-  use num_decimal::Num;
-
-  use ratsio::codec::OpCodec;
-  use ratsio::error::RatsioError;
-  use ratsio::ops::Message;
-  use ratsio::ops::Op;
-  use ratsio::ops::ServerInfo;
+  use futures::future::ready;
+  use futures::SinkExt;
+  use futures::StreamExt;
+  use futures::TryStreamExt;
 
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
 
-  use tokio::runtime::Runtime;
-  use tokio::runtime::TaskExecutor;
-  use tokio_codec::Decoder;
-  use tokio_tcp::TcpListener;
+  use tungstenite::tungstenite::Message;
+
+  use url::Url;
+
+  use websocket_util::test::mock_server;
+  use websocket_util::test::WebSocketStream;
+
+  const API_KEY: &str = "USER12345678";
+  const CONNECTED_MSG: &str =
+    { r#"[{"ev":"status","status":"connected","message":"Connected Successfully"}]"# };
+  const AUTH_REQ: &str = r#"{"action":"auth","params":"USER12345678"}"#;
+  const AUTH_RESP: &str = r#"[{"ev":"status","status":"auth_success","message":"authenticated"}]"#;
+  const SUB_REQ: &str = r#"{"action":"subscribe","params":"T.MSFT,Q.*"}"#;
+  const SUB_RESP: &str = {
+    r#"[
+      {"ev":"status","status":"success","message":"subscribed to: T.MSFT"},
+      {"ev":"status","status":"success","message":"subscribed to: Q.*"}]
+    "#
+  };
+  const MSFT_TRADE_MSG: &str = {
+    r#"[{"ev":"T","sym":"MSFT","i":8310,"x":4,"p":156.9799,"s":3,"c":[37],"t":1577818283019,"z":3}]"#
+  };
+  const UFO_QUOTE_MSG: &str = {
+    r#"[
+      {"ev":"Q","sym":"UFO","c":1,"bx":8,"ax":12,"bp":26.4,"ap":26.47,"bs":1,"as":3,"t":1577818659363,"z":3},
+      {"ev":"Q","sym":"UFO","c":1,"bx":8,"ax":12,"bp":26.4,"ap":26.47,"bs":1,"as":11,"t":1577818659365,"z":3}
+    ]"#
+  };
 
 
-  fn serve_nats(
-    executor: TaskExecutor,
-    events: BTreeMap<&'static str, Vec<&'static str>>,
-  ) -> Result<SocketAddr, RatsioError>
+  async fn mock_stream<F, R, S>(
+    f: F,
+    subscriptions: S,
+  ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
+  where
+    F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
+    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
+    S: IntoIterator<Item = Subscription>,
   {
-    let address = SocketAddr::from(([127, 0, 0, 1], 0));
-    let listener = TcpListener::bind(&address).unwrap();
-    let address = listener.local_addr().unwrap();
-    let executor2 = executor.clone();
+    let addr = mock_server(f).await;
+    let api_info = ApiInfo {
+      stream_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
+      api_key: API_KEY.to_string(),
+    };
 
-    let future = listener
-      .incoming()
-      .map(move |socket| OpCodec::default().framed(socket))
-      .from_err()
-      .and_then(|socket| {
-        socket.send(Op::INFO(ServerInfo {
-          server_id: "events-test".to_string(),
-          version: "0.1".to_string(),
-          go: "".to_string(),
-          host: "localhost".to_string(),
-          port: 0,
-          max_payload: usize::max_value(),
-          proto: 0,
-          client_id: 0,
-          auth_required: true,
-          tls_required: false,
-          tls_verify: false,
-          connect_urls: Vec::new(),
-        }))
-      })
-      .and_then(|socket| socket.send(Op::PING))
-      .and_then(move |socket| {
-        let (sink, stream) = socket.split();
-        let (send, recv) = mpsc::unbounded();
-        let recv = recv.map_err(|_| RatsioError::InnerBrokenChain);
-        let executor = executor.clone();
-        executor.spawn({
-          sink
-            .send_all(recv)
-            .map(|_| ())
-            .map_err(|err| assert!(false, "{:?}", err))
-        });
-        let mut events = events.clone();
-
-        stream.for_each(move |op| {
-          debug!("Got OP from client {:#?}", op);
-          match op {
-            Op::PONG => {
-              debug!("Got PONG from client");
-            }
-            Op::PING => {
-              let _ = send.unbounded_send(Op::PONG);
-            }
-            Op::SUB(cmd) => {
-              // Once we got a subscription request for a subject we
-              // remove that subject from the map of available ones.
-              match events.remove(cmd.subject.as_str()) {
-                Some(events) => {
-                  executor.spawn({
-                    for event in &events {
-                      let message = Message {
-                        subject: cmd.subject.clone(),
-                        sid: cmd.sid.clone(),
-                        reply_to: None,
-                        payload: event.as_bytes().to_vec(),
-                      };
-                      let _ = send.unbounded_send(Op::MSG(message));
-                    };
-                    ok(())
-                  })
-                },
-                None => panic!("encountered subscription for non-existent subject"),
-              }
-            }
-            _ => {}
-          }
-
-          ok(())
-        })
-      })
-      .into_future()
-      .map(|_| ())
-      .map_err(|_| ());
-
-    executor2.spawn(future);
-    Ok(address)
+    stream(api_info, subscriptions).await
   }
-
 
   #[test]
   fn parse_event() {
@@ -435,42 +232,120 @@ mod tests {
   }
 
   #[test]
-  fn receive_trades() {
-    let mut runtime = Runtime::new().unwrap();
-    let executor = runtime.executor();
+  fn parse_events() {
+    let response = r#"[
+      {"ev":"Q","sym":"XLE","c":0,"bx":11,"ax":12,"bp":59.88,
+       "ap":59.89,"bs":28,"as":67,"t":1577724127207,"z":2},
+      {"ev":"Q","sym":"AAPL","c":0,"bx":11,"ax":12,"bp":59.88,
+       "ap":59.89,"bs":28,"as":65,"t":1577724127207,"z":2}
+    ]"#;
+
+    let events = from_json::<Events>(&response).unwrap().0;
+    assert_eq!(events.len(), 2);
+    match &events[0] {
+      Event::Quote(Quote { symbol, .. }) if symbol == "XLE" => (),
+      e => panic!("unexpected event: {:?}", e),
+    }
+    match &events[1] {
+      Event::Quote(Quote { symbol, .. }) if symbol == "AAPL" => (),
+      e => panic!("unexpected event: {:?}", e),
+    }
+  }
+
+  #[test(tokio::test)]
+  async fn stream_msft() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      stream
+        .send(Message::Text(CONNECTED_MSG.to_string()))
+        .await?;
+
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(SUB_REQ.to_string()),
+      );
+      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+
+      stream
+        .send(Message::Text(MSFT_TRADE_MSG.to_string()))
+        .await?;
+      stream
+        .send(Message::Text(UFO_QUOTE_MSG.to_string()))
+        .await?;
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
 
     let subscriptions = vec![
-      Subscription::Trades(Stock::Symbol("AAPL".into())),
+      Subscription::Trades(Stock::Symbol("MSFT".into())),
+      Subscription::Quotes(Stock::All),
     ];
-    let mut events = BTreeMap::new();
-    events.insert(
-      "T.AAPL",
-      vec![
-        r#"{"ev":"T","sym":"AAPL","x":4,"p":194.949,"s":5,"c":[37],"t":1560181868990}"#,
-        r#"{"ev":"T","sym":"AAPL","x":12,"p":194.97,"s":22,"c":[37],"t":1560181869197}"#,
-        r#"{"ev":"T","sym":"AAPL","x":12,"p":194.94,"s":6,"c":[37],"t":1560181869197}"#,
-        r#"{"ev":"T","sym":"AAPL","x":12,"p":194.96,"s":60,"c":[37],"t":1560181869197}"#,
-        r#"{"ev":"T","sym":"AAPL","x":12,"p":194.93,"s":29,"c":[37],"t":1560181869197}"#,
-        r#"{"ev":"T","sym":"AAPL","x":12,"p":194.91,"s":71,"c":[14,37,41],"t":1560181869197}"#,
-        r#"{"ev":"T","sym":"AAPL","x":11,"p":194.95,"s":100,"c":[14,41],"t":1560181869197}"#,
-        r#"{"ev":"T","sym":"AAPL","x":4,"p":194.955,"s":100,"c":[],"t":1560181869209}"#,
-      ],
-    );
+    let mut stream = Box::pin(mock_stream(test, subscriptions).await.unwrap());
 
-    let address = serve_nats(executor, events).unwrap().to_string();
-    let cluster = vec![address];
-    let future = subscribe_to_cluster("xxxx", cluster, subscriptions.into_iter()).unwrap()
-      .map_err(EventError::Ratsio)
-      .flatten_stream()
-      .skip(1)
-      .take(5)
-      .collect();
+    let trade = stream.next().await.unwrap().unwrap().unwrap().0;
+    assert_eq!(trade.len(), 1);
+    assert_eq!(trade[0].to_trade().unwrap().symbol, "MSFT");
 
-    let events = runtime.block_on(future).unwrap();
-    assert_eq!(events.len(), 5);
-    let trade = events[0].to_trade().unwrap();
-    assert_eq!(&trade.symbol, "AAPL");
-    assert_eq!(trade.price, Num::new(19497, 100));
-    assert_eq!(trade.quantity, 22);
+    let quote = stream.next().await.unwrap().unwrap().unwrap().0;
+    assert_eq!(quote.len(), 2);
+
+    let quote0 = quote[0].to_quote().unwrap();
+    assert_eq!(quote0.symbol, "UFO");
+    assert_eq!(quote0.ask_quantity, 3);
+
+    let quote1 = quote[1].to_quote().unwrap();
+    assert_eq!(quote1.symbol, "UFO");
+    assert_eq!(quote1.ask_quantity, 11);
+  }
+
+  #[test(tokio::test)]
+  async fn interleaved_trade() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      stream
+        .send(Message::Text(CONNECTED_MSG.to_string()))
+        .await?;
+
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(SUB_REQ.to_string()),
+      );
+
+      // We have seen cases where the subscription response is actually
+      // preceded by an event we just subscribed to. Ugh. So simulate
+      // such a case to make sure we can deal with such races.
+      stream
+        .send(Message::Text(MSFT_TRADE_MSG.to_string()))
+        .await?;
+      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
+
+    let subscriptions = vec![
+      Subscription::Trades(Stock::Symbol("MSFT".into())),
+      Subscription::Quotes(Stock::All),
+    ];
+    let _ = mock_stream(test, subscriptions)
+      .await
+      .unwrap()
+      .try_for_each(|_| ready(Ok(())))
+      .await
+      .unwrap();
   }
 }

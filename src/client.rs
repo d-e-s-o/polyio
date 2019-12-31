@@ -1,16 +1,16 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures01::Future;
-use futures01::stream::Stream;
+use futures::Stream;
 
-use ratsio::error::RatsioError;
+use serde_json::Error as JsonError;
+
+use tungstenite::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
-use crate::events::Event;
-use crate::events::EventError;
-use crate::events::subscribe;
+use crate::events::Events;
+use crate::events::stream;
 use crate::events::Subscription;
 
 
@@ -30,16 +30,45 @@ impl Client {
   }
 
   /// Subscribe to the given stream in order to receive updates.
-  pub fn subscribe<S>(
+  pub async fn subscribe<S>(
     &self,
     subscriptions: S,
-  ) -> Result<
-    impl Future<Item = impl Stream<Item = Event, Error = EventError>, Error = RatsioError>,
-    Error,
-  >
+  ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
   where
     S: IntoIterator<Item = Subscription>,
   {
-    subscribe(&self.api_info.api_key, subscriptions)
+    let mut url = self.api_info.stream_url.clone();
+    url.set_scheme("wss").map_err(|()| {
+      Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
+    })?;
+    url.set_path("stocks");
+
+    let api_info = ApiInfo {
+      stream_url: url,
+      api_key: self.api_info.api_key.clone(),
+    };
+
+    stream(api_info, subscriptions).await
+  }
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use test_env_log::test;
+
+
+  #[test(tokio::test)]
+  async fn auth_failure() {
+    let mut client = Client::from_env().unwrap();
+    client.api_info.api_key = "not-a-valid-key".to_string();
+
+    let result = client.subscribe(vec![]).await;
+    match result {
+      Err(Error::Str(err)) if err.starts_with("authentication not successful") => (),
+      _ => panic!("unexpected result"),
+    }
   }
 }

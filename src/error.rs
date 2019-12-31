@@ -13,7 +13,7 @@ use url::ParseError;
 use crate::Str;
 
 
-pub fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
+fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
   write!(fmt, "{}", err)?;
   if let Some(src) = err.source() {
     write!(fmt, ": ")?;
