@@ -4,9 +4,10 @@
 mod handshake;
 mod stock;
 mod stream;
+mod subscription;
 
 pub use stream::Event;
 pub use stream::Events;
-pub use stream::Stock;
 pub use stream::stream;
-pub use stream::Subscription;
+pub use subscription::Stock;
+pub use subscription::Subscription;
