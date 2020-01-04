@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
@@ -22,10 +22,10 @@ use websocket_util::stream as do_stream;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
-use crate::handshake::subscribe;
-use crate::stock::Aggregate;
-use crate::stock::Quote;
-use crate::stock::Trade;
+use crate::events::handshake::subscribe;
+use crate::events::stock::Aggregate;
+use crate::events::stock::Quote;
+use crate::events::stock::Trade;
 use crate::Str;
 
 
