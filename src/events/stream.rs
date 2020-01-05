@@ -1,8 +1,6 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use async_tls::TlsConnector;
-
 use futures::Stream;
 
 use log::debug;
@@ -10,7 +8,7 @@ use log::debug;
 use serde::Deserialize;
 use serde_json::Error as JsonError;
 
-use tungstenite::connect_async_with_tls_connector;
+use tungstenite::tokio::connect_async_with_tls_connector;
 use tungstenite::tungstenite::Error as WebSocketError;
 
 use websocket_util::stream as do_stream;
@@ -83,8 +81,7 @@ where
 
   debug!("connecting to {}", &url);
 
-  let connector = Some(TlsConnector::default());
-  let (mut stream, _) = connect_async_with_tls_connector(url, connector).await?;
+  let (mut stream, _) = connect_async_with_tls_connector(url, None).await?;
 
   subscribe(&mut stream, api_key, subscriptions).await?;
 
