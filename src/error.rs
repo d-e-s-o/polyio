@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
@@ -11,16 +11,6 @@ use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
 
 use crate::Str;
-
-
-fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
-  write!(fmt, "{}", err)?;
-  if let Some(src) = err.source() {
-    write!(fmt, ": ")?;
-    fmt_err(src, fmt)?;
-  }
-  Ok(())
-}
 
 
 /// An error type used by this crate.
@@ -39,15 +29,24 @@ pub enum Error {
 impl Display for Error {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Error::Json(err) => fmt_err(err, fmt),
-      Error::Str(s) => write!(fmt, "{}", s),
-      Error::Url(err) => fmt_err(err, fmt),
-      Error::WebSocket(err) => fmt_err(err, fmt),
+      Error::Json(err) => write!(fmt, "{}", err),
+      Error::Str(err) => fmt.write_str(err),
+      Error::Url(err) => write!(fmt, "{}", err),
+      Error::WebSocket(err) => write!(fmt, "{}", err),
     }
   }
 }
 
-impl StdError for Error {}
+impl StdError for Error {
+  fn source(&self) -> Option<&(dyn StdError + 'static)> {
+    match self {
+      Error::Json(err) => err.source(),
+      Error::Str(..) => None,
+      Error::Url(err) => err.source(),
+      Error::WebSocket(err) => err.source(),
+    }
+  }
+}
 
 impl From<JsonError> for Error {
   fn from(e: JsonError) -> Self {
