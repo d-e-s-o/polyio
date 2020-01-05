@@ -44,6 +44,7 @@ impl Client {
     url.set_path("stocks");
 
     let api_info = ApiInfo {
+      api_url: self.api_info.api_url.clone(),
       stream_url: url,
       api_key: self.api_info.api_key.clone(),
     };

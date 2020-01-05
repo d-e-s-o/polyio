@@ -8,11 +8,15 @@ use url::Url;
 
 use crate::Error;
 
+/// The base URL to the API to use.
+const ENV_API_URL: &str = "POLYGON_API_URL";
 /// The base URL to the market data stream to use.
 const ENV_STREAM_URL: &str = "POLYGON_STREAM_URL";
 /// The environment variable representing the API key.
 const ENV_API_KEY: &str = "POLYGON_API_KEY";
 
+/// The default stream URL.
+const DEFAULT_API_URL: &str = "https://api.polygon.io";
 /// The default stream URL.
 const DEFAULT_STREAM_URL: &str = "wss://socket.polygon.io";
 
@@ -21,6 +25,8 @@ const DEFAULT_STREAM_URL: &str = "wss://socket.polygon.io";
 /// Alpaca API.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ApiInfo {
+  /// The base URL for API requests.
+  pub(crate) api_url: Url,
   /// The base URL for market data streaming.
   pub(crate) stream_url: Url,
   /// The API key to use for authentication.
@@ -33,11 +39,27 @@ impl ApiInfo {
   /// This constructor retrieves API related information from the
   /// environment and performs some preliminary validation on it. The
   /// following information is used:
+  /// - the Polygon API base URL is retrieved from the POLYGON_API_URL
+  ///   variable
   /// - the Polygon streaming base URL is retrieved from the
   ///   POLYGON_STREAM_URL variable
   /// - the Polygon API key is retrieved from the POLYGON_API_KEY
   ///   variable
   pub fn from_env() -> Result<Self, Error> {
+    let api_url = var_os(ENV_API_URL)
+      .unwrap_or_else(|| OsString::from(DEFAULT_API_URL))
+      .into_string()
+      .map_err(|_| {
+        Error::Str(
+          format!(
+            "{} environment variable is not a valid string",
+            ENV_API_URL
+          )
+          .into(),
+        )
+      })?;
+    let api_url = Url::parse(&api_url)?;
+
     let stream_url = var_os(ENV_STREAM_URL)
       .unwrap_or_else(|| OsString::from(DEFAULT_STREAM_URL))
       .into_string()
@@ -60,6 +82,7 @@ impl ApiInfo {
       })?;
 
     Ok(Self {
+      api_url,
       stream_url,
       api_key,
     })

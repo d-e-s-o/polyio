@@ -76,6 +76,7 @@ where
   S: IntoIterator<Item = Subscription>,
 {
   let ApiInfo {
+    api_url: _,
     stream_url: url,
     api_key,
   } = api_info;
@@ -150,6 +151,7 @@ mod tests {
   {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
+      api_url: Url::parse("http://example.com").unwrap(),
       stream_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
       api_key: API_KEY.to_string(),
     };
