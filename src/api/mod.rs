@@ -3,6 +3,8 @@
 
 mod response;
 
+/// Definitions pertaining the available exchanges.
+pub mod exchanges;
 /// Definitions pertaining the available locales.
 pub mod locales;
 /// Definitions pertaining the available markets.
