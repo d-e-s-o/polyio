@@ -21,6 +21,9 @@ A create for interacting with the Polygon API at polygon.io.
 
 [dependencies]
 futures = {version = "0.3", default-features = false}
+http-endpoint = "0.1"
+hyper = {version = "0.13", default-features = false}
+hyper-tls = {version = "0.4", default-features = false}
 log = "0.4"
 num-decimal = {version = "0.1", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}

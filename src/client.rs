@@ -1,7 +1,24 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::str::from_utf8;
+
 use futures::Stream;
+
+use http_endpoint::Endpoint;
+
+use hyper::Body;
+use hyper::body::to_bytes;
+use hyper::Client as HttpClient;
+use hyper::client::HttpConnector;
+use hyper::http::request::Builder as HttpRequestBuilder;
+use hyper::Request;
+use hyper_tls::HttpsConnector;
+
+use log::debug;
+use log::info;
+use log::Level::Debug;
+use log::log_enabled;
 
 use serde_json::Error as JsonError;
 
@@ -13,20 +30,73 @@ use crate::events::Events;
 use crate::events::stream;
 use crate::events::Subscription;
 
+/// The query parameter used for communicating the API key to Polygon.
+const API_KEY_PARAM: &str = "apiKey";
+
 
 /// A `Client` is the entity used by clients of this module for
 /// interacting with the Polygon API.
 #[derive(Debug)]
 pub struct Client {
   api_info: ApiInfo,
+  client: HttpClient<HttpsConnector<HttpConnector>, Body>,
 }
 
 impl Client {
   /// Create a new `Client` with information from the environment.
   pub fn from_env() -> Result<Self, Error> {
     let api_info = ApiInfo::from_env()?;
+    let client = HttpClient::builder().build(HttpsConnector::new());
 
-    Ok(Self { api_info })
+    Ok(Self { api_info, client })
+  }
+
+  /// Create a `Request` to the endpoint.
+  fn request<E>(&self, input: &E::Input) -> Result<Request<Body>, E::Error>
+  where
+    E: Endpoint,
+  {
+    let mut url = self.api_info.api_url.clone();
+    url.set_path(&E::path(&input));
+    url.set_query(E::query(&input).as_ref().map(AsRef::as_ref));
+    url
+      .query_pairs_mut()
+      .append_pair(API_KEY_PARAM, &self.api_info.api_key);
+
+    let request = HttpRequestBuilder::new()
+      .method(E::method())
+      .uri(url.as_str())
+      .body(E::body(input)?)?;
+
+    Ok(request)
+  }
+
+  /// Create and issue a request and decode the response.
+  pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, E::Error>
+  where
+    E: Endpoint,
+  {
+    let req = self.request::<E>(&input)?;
+    if log_enabled!(Debug) {
+      debug!("HTTP request: {:?}", req);
+    } else {
+      info!("HTTP request: {} to {}", req.method(), req.uri());
+    }
+
+    let result = self.client.request(req).await?;
+    let status = result.status();
+    let bytes = to_bytes(result.into_body()).await?;
+    let body = bytes.as_ref();
+
+    info!("HTTP status: {}", status);
+    if log_enabled!(Debug) {
+      match from_utf8(body) {
+        Ok(s) => debug!("HTTP body: {}", s),
+        Err(b) => debug!("HTTP body: {}", b),
+      }
+    }
+
+    E::evaluate(status, body)
   }
 
   /// Subscribe to the given stream in order to receive updates.

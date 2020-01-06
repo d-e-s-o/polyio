@@ -6,6 +6,10 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
+use http_endpoint::Error as EndpointError;
+use hyper::Error as HyperError;
+use hyper::http::Error as HttpError;
+use hyper::http::StatusCode as HttpStatusCode;
 use serde_json::Error as JsonError;
 use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
@@ -16,6 +20,13 @@ use crate::Str;
 /// An error type used by this crate.
 #[derive(Debug)]
 pub enum Error {
+  /// An HTTP related error.
+  Http(HttpError),
+  /// We encountered an HTTP that either represents a failure or is not
+  /// supported.
+  HttpStatus(HttpStatusCode),
+  /// An error reported by the `hyper` crate.
+  Hyper(HyperError),
   /// A JSON conversion error.
   Json(JsonError),
   /// An error directly originating in this module.
@@ -29,6 +40,9 @@ pub enum Error {
 impl Display for Error {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
+      Error::Http(err) => write!(fmt, "{}", err),
+      Error::HttpStatus(status) => write!(fmt, "Received HTTP status: {}", status),
+      Error::Hyper(err) => write!(fmt, "{}", err),
       Error::Json(err) => write!(fmt, "{}", err),
       Error::Str(err) => fmt.write_str(err),
       Error::Url(err) => write!(fmt, "{}", err),
@@ -40,10 +54,24 @@ impl Display for Error {
 impl StdError for Error {
   fn source(&self) -> Option<&(dyn StdError + 'static)> {
     match self {
+      Error::Http(err) => err.source(),
+      Error::HttpStatus(..) => None,
+      Error::Hyper(err) => err.source(),
       Error::Json(err) => err.source(),
       Error::Str(..) => None,
       Error::Url(err) => err.source(),
       Error::WebSocket(err) => err.source(),
+    }
+  }
+}
+
+impl From<EndpointError> for Error {
+  fn from(src: EndpointError) -> Self {
+    match src {
+      EndpointError::Http(err) => Error::Http(err),
+      EndpointError::HttpStatus(status) => Error::HttpStatus(status),
+      EndpointError::Hyper(err) => Error::Hyper(err),
+      EndpointError::Json(err) => Error::Json(err),
     }
   }
 }
