@@ -3,5 +3,7 @@
 
 mod response;
 
+/// Definitions pertaining the available locales.
+pub mod locales;
 /// Definitions pertaining the available markets.
 pub mod markets;
