@@ -3,10 +3,11 @@
 
 use futures::Stream;
 
-use log::debug;
-
 use serde::Deserialize;
 use serde_json::Error as JsonError;
+
+use tracing::debug;
+use tracing::info;
 
 use tungstenite::tokio::connect_async_with_tls_connector;
 use tungstenite::tungstenite::Error as WebSocketError;
@@ -15,7 +16,7 @@ use websocket_util::stream as do_stream;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
-use crate::events::handshake::subscribe;
+use crate::events::handshake::handshake;
 use crate::events::stock::Aggregate;
 use crate::events::stock::Quote;
 use crate::events::stock::Trade;
@@ -79,11 +80,14 @@ where
     api_key,
   } = api_info;
 
-  debug!("connecting to {}", &url);
+  info!(message = "connecting", url = display(&url));
 
-  let (mut stream, _) = connect_async_with_tls_connector(url, None).await?;
+  let (mut stream, response) = connect_async_with_tls_connector(url, None).await?;
+  info!("connection successful");
+  debug!(response = debug(&response));
 
-  subscribe(&mut stream, api_key, subscriptions).await?;
+  handshake(&mut stream, api_key, subscriptions).await?;
+  info!("subscription successful");
 
   let stream = do_stream(stream).await;
   Ok(stream)

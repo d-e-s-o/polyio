@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use futures::Sink;
@@ -7,10 +7,10 @@ use futures::Stream;
 use futures::StreamExt;
 use futures::TryFutureExt;
 
-use log::debug;
-use log::error;
-use log::Level::Debug;
-use log::log_enabled;
+use tracing::debug;
+use tracing::error;
+use tracing::info;
+use tracing::instrument;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -115,7 +115,7 @@ where
 {
   let request = Request::new(Action::Authenticate, api_key);
   let json = to_json(&request).unwrap();
-  debug!("stream auth request: {}", json);
+  debug!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -145,6 +145,8 @@ where
     cnt += 1;
     (subs, cnt)
   });
+  info!(subscriptions = display(&subscriptions));
+
   let request = Request::new(Action::Subscribe, subscriptions);
   Ok((request, count))
 }
@@ -158,7 +160,7 @@ where
 {
   let (request, count) = make_subscribe_request(subscriptions)?;
   let json = to_json(&request).unwrap();
-  debug!("stream subscribe request: {}", json);
+  debug!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -184,13 +186,6 @@ fn check_responses(
   operation: &str,
 ) -> Result<usize, Error> {
   debug_assert!(count > 0, count);
-
-  if log_enabled!(Debug) {
-    match String::from_utf8(msg.to_vec()) {
-      Ok(s) => debug!("stream {} message: {}", operation, s),
-      Err(b) => debug!("stream {} message: {}", operation, b),
-    }
-  }
 
   let responses = from_json::<Responses>(msg)?.0;
   for response in responses {
@@ -235,6 +230,7 @@ where
       .await
       .ok_or_else(|| Error::Str("websocket connection closed unexpectedly".into()))?;
     let msg = result?;
+    debug!(response = display(&msg));
 
     count = match msg {
       Message::Text(text) => check_responses(text.as_bytes(), expected, count, operation)?,
@@ -255,8 +251,33 @@ where
 }
 
 
-/// Authenticate with and subscribe to an Alpaca event stream.
-pub async fn subscribe<S, I>(stream: &mut S, api_key: String, subscriptions: I) -> Result<(), Error>
+#[instrument(level = "debug", skip(stream, api_key))]
+async fn authenticate<S>(stream: &mut S, api_key: String) -> Result<(), Error>
+where
+  S: Stream<Item = Result<Message, WebSocketError>>,
+  S: Sink<Message, Error = WebSocketError> + Unpin,
+{
+  auth(stream, api_key).await?;
+  await_responses(stream, Code::AuthSuccess, 1, "authentication").await?;
+  Ok(())
+}
+
+
+#[instrument(level = "debug", skip(stream, subscriptions))]
+async fn subscribe<S, I>(stream: &mut S, subscriptions: I) -> Result<(), Error>
+where
+  S: Stream<Item = Result<Message, WebSocketError>>,
+  S: Sink<Message, Error = WebSocketError> + Unpin,
+  I: IntoIterator<Item = Subscription>,
+{
+  let count = subscribe_stocks(stream, subscriptions).await?;
+  await_responses(stream, Code::Success, count, "subscription").await?;
+  Ok(())
+}
+
+
+/// Authenticate with and subscribe to Polygon ticker events.
+pub async fn handshake<S, I>(stream: &mut S, api_key: String, subscriptions: I) -> Result<(), Error>
 where
   S: Stream<Item = Result<Message, WebSocketError>>,
   S: Sink<Message, Error = WebSocketError> + Unpin,
@@ -265,13 +286,8 @@ where
   // Initial confirmation of connection.
   await_responses(stream, Code::Connected, 1, "connection").await?;
 
-  // Authentication.
-  auth(stream, api_key).await?;
-  await_responses(stream, Code::AuthSuccess, 1, "authentication").await?;
-
-  // Subscription.
-  let count = subscribe_stocks(stream, subscriptions).await?;
-  await_responses(stream, Code::Success, count, "subscription").await?;
+  authenticate(stream, api_key).await?;
+  subscribe(stream, subscriptions).await?;
   Ok(())
 }
 
