@@ -13,3 +13,5 @@ pub mod markets;
 pub mod ticker;
 /// Definitions for retrieving the available ticker types.
 pub mod ticker_types;
+/// Definitions pertaining the available tickers.
+pub mod tickers;

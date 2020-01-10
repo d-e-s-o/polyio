@@ -46,6 +46,15 @@ pub enum Type {
   Other,
 }
 
+impl Type {
+  pub(crate) fn as_str(&self) -> Option<&'static str> {
+    match *self {
+      Type::CommonStock => Some("CS"),
+      Type::Other => None,
+    }
+  }
+}
+
 
 /// A ticker as returned by the /v2/reference/tickers/<ticker> endpoint.
 ///
