@@ -9,7 +9,7 @@ use crate::Str;
 
 
 /// Possible subscriptions for a stock.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Stock {
   /// Subscribe to the stock with the given symbol.
   Symbol(Str),
@@ -28,7 +28,7 @@ impl Display for Stock {
 
 
 /// An enum describing a subscription.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Subscription {
   /// A type representing second aggregates for the given stock.
   SecondAggregates(Stock),

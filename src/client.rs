@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::str::from_utf8;
 
@@ -30,9 +31,53 @@ use crate::error::Error;
 use crate::events::Events;
 use crate::events::stream;
 use crate::events::Subscription;
+use crate::events::Stock;
 
 /// The query parameter used for communicating the API key to Polygon.
 const API_KEY_PARAM: &str = "apiKey";
+
+
+/// Normalize a list of subscriptions, removing duplicates and overlaps.
+///
+/// If a subscription applies to all stocks of a certain type (e.g.,
+/// `Subscription::Trades(Stock::All)`) then more specific subscriptions
+/// are removed (e.g., `Subscription::Trades(Stock::Symbol("SPY"))`).
+fn normalize<S>(subscriptions: S) -> HashSet<Subscription>
+where
+  S: IntoIterator<Item = Subscription>,
+{
+  let mut subs = subscriptions.into_iter().collect::<HashSet<_>>();
+
+  if subs.contains(&Subscription::SecondAggregates(Stock::All)) {
+    subs.retain(|sub| match sub {
+      Subscription::SecondAggregates(stock) => *stock == Stock::All,
+      _ => true,
+    })
+  }
+
+  if subs.contains(&Subscription::MinuteAggregates(Stock::All)) {
+    subs.retain(|sub| match sub {
+      Subscription::MinuteAggregates(stock) => *stock == Stock::All,
+      _ => true,
+    })
+  }
+
+  if subs.contains(&Subscription::Trades(Stock::All)) {
+    subs.retain(|sub| match sub {
+      Subscription::Trades(stock) => *stock == Stock::All,
+      _ => true,
+    })
+  }
+
+  if subs.contains(&Subscription::Quotes(Stock::All)) {
+    subs.retain(|sub| match sub {
+      Subscription::Quotes(stock) => *stock == Stock::All,
+      _ => true,
+    })
+  }
+
+  subs
+}
 
 
 /// A `Client` is the entity used by clients of this module for
@@ -105,11 +150,23 @@ impl Client {
   }
 
   /// Subscribe to the given stream in order to receive updates.
-  // TODO: Debug printing an iterator can yield some pretty nasty
-  //       looking results. We may want to collect into a `Vec` or so to
-  //       make the result easier digestible.
-  #[instrument(level = "info", skip(self))]
   pub async fn subscribe<S>(
+    &self,
+    subscriptions: S,
+  ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
+  where
+    S: IntoIterator<Item = Subscription>,
+  {
+    // We remove duplicates and subsumed subscriptions but also create
+    // an iterator of a well known type to pass to `subscribe_`, which
+    // will include its Debug format in a span.
+    let subscriptions = normalize(subscriptions);
+    self.subscribe_(subscriptions).await
+  }
+
+  /// Implementation of `subscribe` that creates a proper span.
+  #[instrument(level = "info", skip(self))]
+  async fn subscribe_<S>(
     &self,
     subscriptions: S,
   ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
@@ -137,8 +194,47 @@ impl Client {
 mod tests {
   use super::*;
 
+  use maplit::hashset;
+
   use test_env_log::test;
 
+
+  #[test]
+  fn normalize_subscriptions() {
+    let subscriptions = vec![
+      Subscription::Quotes(Stock::Symbol("SPY".into())),
+      Subscription::Trades(Stock::Symbol("MSFT".into())),
+      Subscription::Quotes(Stock::All),
+    ];
+    let expected = hashset! {
+      Subscription::Trades(Stock::Symbol("MSFT".into())),
+      Subscription::Quotes(Stock::All),
+    };
+    assert_eq!(normalize(subscriptions), expected);
+
+    let subscriptions = vec![
+      Subscription::SecondAggregates(Stock::All),
+      Subscription::SecondAggregates(Stock::Symbol("SPY".into())),
+      Subscription::MinuteAggregates(Stock::Symbol("AAPL".into())),
+      Subscription::MinuteAggregates(Stock::Symbol("VMW".into())),
+      Subscription::MinuteAggregates(Stock::All),
+    ];
+    let expected = hashset! {
+      Subscription::SecondAggregates(Stock::All),
+      Subscription::MinuteAggregates(Stock::All),
+    };
+    assert_eq!(normalize(subscriptions), expected);
+
+    let subscriptions = vec![
+      Subscription::Trades(Stock::All),
+      Subscription::Trades(Stock::Symbol("VMW".into())),
+      Subscription::Trades(Stock::All),
+    ];
+    let expected = hashset! {
+      Subscription::Trades(Stock::All),
+    };
+    assert_eq!(normalize(subscriptions), expected);
+  }
 
   #[test(tokio::test)]
   async fn auth_failure() {
