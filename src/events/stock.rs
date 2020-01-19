@@ -8,7 +8,9 @@ use std::time::UNIX_EPOCH;
 use num_decimal::Num;
 
 use serde::de::Deserializer;
+use serde::ser::Serializer;
 use serde::Deserialize;
+use serde::Serialize;
 
 
 /// Deserialize a time stamp as a `SystemTime`.
@@ -21,9 +23,21 @@ where
   Ok(UNIX_EPOCH + duration)
 }
 
+/// Serialize a `SystemTime` into a UNIX time stamp.
+fn system_time_to_millis<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  // It should be safe to unwrap here given that there is absolutely no
+  // way for a time stamp to ever point to a time before `UNIX_EPOCH`
+  // and that the only (documented) error case for `duration_since`.
+  let millis = time.duration_since(UNIX_EPOCH).unwrap().as_millis();
+  serializer.serialize_u128(millis)
+}
+
 
 /// A data point for a trade.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Trade {
   /// The stock's symbol.
   #[serde(rename = "sym")]
@@ -41,13 +55,17 @@ pub struct Trade {
   #[serde(rename = "c")]
   pub conditions: Vec<u64>,
   /// The trade's timestamp (in UNIX milliseconds).
-  #[serde(rename = "t", deserialize_with = "system_time_from_str")]
+  #[serde(
+    rename = "t",
+    deserialize_with = "system_time_from_str",
+    serialize_with = "system_time_to_millis",
+  )]
   pub timestamp: SystemTime,
 }
 
 
 /// A quote for a stock.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Quote {
   /// The stock's symbol.
   #[serde(rename = "sym")]
@@ -74,13 +92,17 @@ pub struct Quote {
   #[serde(rename = "c")]
   pub condition: u64,
   /// The quote's timestamp (in UNIX milliseconds).
-  #[serde(rename = "t", deserialize_with = "system_time_from_str")]
+  #[serde(
+    rename = "t",
+    deserialize_with = "system_time_from_str",
+    serialize_with = "system_time_to_millis",
+  )]
   pub timestamp: SystemTime,
 }
 
 
 /// An aggregate for a stock.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Aggregate {
   /// The stock's symbol.
   #[serde(rename = "sym")]
@@ -114,10 +136,18 @@ pub struct Aggregate {
   #[serde(rename = "a")]
   pub average_price: Num,
   /// The tick's start timestamp (in UNIX milliseconds).
-  #[serde(rename = "s", deserialize_with = "system_time_from_str")]
+  #[serde(
+    rename = "s",
+    deserialize_with = "system_time_from_str",
+    serialize_with = "system_time_to_millis",
+  )]
   pub start_timestamp: SystemTime,
   /// The tick's end timestamp (in UNIX milliseconds).
-  #[serde(rename = "e", deserialize_with = "system_time_from_str")]
+  #[serde(
+    rename = "e",
+    deserialize_with = "system_time_from_str",
+    serialize_with = "system_time_to_millis",
+  )]
   pub end_timestamp: SystemTime,
 }
 
@@ -127,10 +157,11 @@ mod tests {
   use super::*;
 
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
 
   #[test]
-  fn parse_trade() {
+  fn deserialize_serialize_trade() {
     let response = r#"{
       "ev": "T",
       "sym": "MSFT",
@@ -150,10 +181,14 @@ mod tests {
       trade.timestamp,
       UNIX_EPOCH + Duration::from_millis(1536036818784),
     );
+
+    let json = to_json(&trade).unwrap();
+    let new = from_json::<Trade>(&json).unwrap();
+    assert_eq!(new, trade);
   }
 
   #[test]
-  fn parse_quote() {
+  fn deserialize_serialize_quote() {
     let response = r#"{
       "ev": "Q",
       "sym": "MSFT",
@@ -179,10 +214,14 @@ mod tests {
       quote.timestamp,
       UNIX_EPOCH + Duration::from_millis(1536036818784),
     );
+
+    let json = to_json(&quote).unwrap();
+    let new = from_json::<Quote>(&json).unwrap();
+    assert_eq!(new, quote);
   }
 
   #[test]
-  fn parse_aggregate() {
+  fn deserialize_serialize_aggregate() {
     let response = r#"{
       "ev": "AM",
       "sym": "MSFT",
@@ -221,5 +260,9 @@ mod tests {
       aggregate.end_timestamp,
       UNIX_EPOCH + Duration::from_millis(1536036818784),
     );
+
+    let json = to_json(&aggregate).unwrap();
+    let new = from_json::<Aggregate>(&json).unwrap();
+    assert_eq!(new, aggregate);
   }
 }

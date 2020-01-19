@@ -5,6 +5,7 @@ polyio
 ======
 
 - [Documentation][docs-rs]
+- [Changelog](CHANGELOG.md)
 
 **polyio** is a library for interacting with the Polygon API at
 [polygon.io][].

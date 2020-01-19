@@ -4,6 +4,7 @@
 use futures::Stream;
 
 use serde::Deserialize;
+use serde::Serialize;
 use serde_json::Error as JsonError;
 
 use tracing::debug;
@@ -24,7 +25,7 @@ use crate::events::subscription::Subscription;
 
 
 /// An enum representing the type of event we received from Polygon.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "ev")]
 pub enum Event {
   /// A tick for a second aggregate for a stock.
@@ -62,7 +63,7 @@ impl Event {
 
 /// A struct representing a number of events that occurred at the same
 /// time.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Events(Vec<Event>);
 
 
