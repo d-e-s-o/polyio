@@ -61,10 +61,9 @@ impl Event {
 }
 
 
-/// A struct representing a number of events that occurred at the same
+/// A type representing a number of events that occurred at the same
 /// time.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct Events(Vec<Event>);
+pub type Events = Vec<Event>;
 
 
 /// Subscribe to and stream events from the Polygon service.
@@ -197,7 +196,7 @@ mod tests {
        "ap":59.89,"bs":28,"as":65,"t":1577724127207,"z":2}
     ]"#;
 
-    let events = from_json::<Events>(&response).unwrap().0;
+    let events = from_json::<Events>(&response).unwrap();
     assert_eq!(events.len(), 2);
     match &events[0] {
       Event::Quote(Quote { symbol, .. }) if symbol == "XLE" => (),
@@ -246,11 +245,11 @@ mod tests {
     ];
     let mut stream = Box::pin(mock_stream(test, subscriptions).await.unwrap());
 
-    let trade = stream.next().await.unwrap().unwrap().unwrap().0;
+    let trade = stream.next().await.unwrap().unwrap().unwrap();
     assert_eq!(trade.len(), 1);
     assert_eq!(trade[0].to_trade().unwrap().symbol, "MSFT");
 
-    let quote = stream.next().await.unwrap().unwrap().unwrap().0;
+    let quote = stream.next().await.unwrap().unwrap().unwrap();
     assert_eq!(quote.len(), 2);
 
     let quote0 = quote[0].to_quote().unwrap();
