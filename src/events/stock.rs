@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::Duration;
@@ -12,7 +12,7 @@ use serde::Deserialize;
 
 
 /// Deserialize a time stamp as a `SystemTime`.
-fn system_time<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+fn system_time_from_str<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
 where
   D: Deserializer<'de>,
 {
@@ -41,7 +41,7 @@ pub struct Trade {
   #[serde(rename = "c")]
   pub conditions: Vec<u64>,
   /// The trade's timestamp (in UNIX milliseconds).
-  #[serde(rename = "t", deserialize_with = "system_time")]
+  #[serde(rename = "t", deserialize_with = "system_time_from_str")]
   pub timestamp: SystemTime,
 }
 
@@ -74,7 +74,7 @@ pub struct Quote {
   #[serde(rename = "c")]
   pub condition: u64,
   /// The quote's timestamp (in UNIX milliseconds).
-  #[serde(rename = "t", deserialize_with = "system_time")]
+  #[serde(rename = "t", deserialize_with = "system_time_from_str")]
   pub timestamp: SystemTime,
 }
 
@@ -114,10 +114,10 @@ pub struct Aggregate {
   #[serde(rename = "a")]
   pub average_price: Num,
   /// The tick's start timestamp (in UNIX milliseconds).
-  #[serde(rename = "s", deserialize_with = "system_time")]
+  #[serde(rename = "s", deserialize_with = "system_time_from_str")]
   pub start_timestamp: SystemTime,
   /// The tick's end timestamp (in UNIX milliseconds).
-  #[serde(rename = "e", deserialize_with = "system_time")]
+  #[serde(rename = "e", deserialize_with = "system_time_from_str")]
   pub end_timestamp: SystemTime,
 }
 
