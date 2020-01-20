@@ -1,39 +1,15 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::Duration;
 use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
 
 use num_decimal::Num;
 
-use serde::de::Deserializer;
-use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
 
-
-/// Deserialize a time stamp as a `SystemTime`.
-fn system_time_from_str<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let ms = u64::deserialize(deserializer)?;
-  let duration = Duration::from_millis(ms);
-  Ok(UNIX_EPOCH + duration)
-}
-
-/// Serialize a `SystemTime` into a UNIX time stamp.
-fn system_time_to_millis<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
-where
-  S: Serializer,
-{
-  // It should be safe to unwrap here given that there is absolutely no
-  // way for a time stamp to ever point to a time before `UNIX_EPOCH`
-  // and that the only (documented) error case for `duration_since`.
-  let millis = time.duration_since(UNIX_EPOCH).unwrap().as_millis();
-  serializer.serialize_u128(millis)
-}
+use time_util::system_time_from_millis;
+use time_util::system_time_to_millis;
 
 
 /// A data point for a trade.
@@ -57,7 +33,7 @@ pub struct Trade {
   /// The trade's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_str",
+    deserialize_with = "system_time_from_millis",
     serialize_with = "system_time_to_millis",
   )]
   pub timestamp: SystemTime,
@@ -94,7 +70,7 @@ pub struct Quote {
   /// The quote's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_str",
+    deserialize_with = "system_time_from_millis",
     serialize_with = "system_time_to_millis",
   )]
   pub timestamp: SystemTime,
@@ -138,14 +114,14 @@ pub struct Aggregate {
   /// The tick's start timestamp (in UNIX milliseconds).
   #[serde(
     rename = "s",
-    deserialize_with = "system_time_from_str",
+    deserialize_with = "system_time_from_millis",
     serialize_with = "system_time_to_millis",
   )]
   pub start_timestamp: SystemTime,
   /// The tick's end timestamp (in UNIX milliseconds).
   #[serde(
     rename = "e",
-    deserialize_with = "system_time_from_str",
+    deserialize_with = "system_time_from_millis",
     serialize_with = "system_time_to_millis",
   )]
   pub end_timestamp: SystemTime,
@@ -155,6 +131,9 @@ pub struct Aggregate {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use std::time::Duration;
+  use std::time::UNIX_EPOCH;
 
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
