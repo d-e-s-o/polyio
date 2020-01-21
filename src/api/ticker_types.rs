@@ -42,19 +42,15 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::Client;
-  use crate::Error;
 
   #[test(tokio::test)]
-  async fn request_ticker_types() -> Result<(), Error> {
-    let client = Client::from_env()?;
-    let types = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
+  async fn request_ticker_types() {
+    let client = Client::from_env().unwrap();
+    let types = client.issue::<Get>(()).await.unwrap();
 
     println!("{:?}", types);
-    Ok(())
   }
 }

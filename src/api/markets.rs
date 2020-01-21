@@ -38,22 +38,20 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn request_markets() -> Result<(), Error> {
-    let client = Client::from_env()?;
+  async fn request_markets() {
+    let client = Client::from_env().unwrap();
     let markets = client
       .issue::<Get>(())
       .await
-      .map_err(EndpointError::from)?
-      .into_result()?;
+      .unwrap()
+      .into_result()
+      .unwrap();
 
     // We are in trouble if NYE cannot be found.
     let stocks = markets
@@ -61,6 +59,5 @@ mod tests {
       .find(|market| market.market == "STOCKS")
       .unwrap();
     assert_eq!(stocks.description, "Stocks / Equities / ETFs");
-    Ok(())
   }
 }

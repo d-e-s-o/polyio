@@ -115,17 +115,14 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn request_tickers() -> Result<(), Error> {
-    let client = Client::from_env()?;
+  async fn request_tickers() {
+    let client = Client::from_env().unwrap();
     let mut page = 1;
 
     loop {
@@ -136,13 +133,10 @@ mod tests {
         ..Default::default()
       };
 
-      let response = client
-        .issue::<Get>(request)
-        .await
-        .map_err(EndpointError::from)?;
+      let response = client.issue::<Get>(request).await.unwrap();
       assert_eq!(response.page, page);
 
-      let tickers = response.into_result()?;
+      let tickers = response.into_result().unwrap();
       assert!(tickers.len() > 0);
 
       // Let's hope that AAPL sticks around for a while.
@@ -152,7 +146,7 @@ mod tests {
         assert_eq!(aapl.locale, "US");
         assert_eq!(aapl.currency, "USD");
         assert!(aapl.active);
-        break Ok(())
+        break
       }
 
       page += 1;

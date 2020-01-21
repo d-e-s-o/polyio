@@ -50,14 +50,11 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
 
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -109,9 +106,9 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn request_exchanges() -> Result<(), Error> {
-    let client = Client::from_env()?;
-    let exchgs = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
+  async fn request_exchanges() {
+    let client = Client::from_env().unwrap();
+    let exchgs = client.issue::<Get>(()).await.unwrap();
 
     assert!(exchgs.len() > 0);
 
@@ -122,6 +119,5 @@ mod tests {
       .unwrap();
     assert_eq!(nye.type_, "exchange");
     assert_eq!(nye.market, "equities");
-    Ok(())
   }
 }

@@ -126,17 +126,16 @@ mod tests {
   use test_env_log::test;
 
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn request_aapl_ticker() -> Result<(), Error> {
-    let client = Client::from_env()?;
+  async fn request_aapl_ticker() {
+    let client = Client::from_env().unwrap();
     let result = client.issue::<Get>("AAPL".into()).await;
 
     match result {
       Ok(response) => {
-        let aapl = response.into_result()?.ticker;
+        let aapl = response.into_result().unwrap().ticker;
         assert_eq!(aapl.ticker, "AAPL");
         assert_eq!(aapl.name, "Apple Inc");
         assert_eq!(aapl.market, Market::Stocks);
@@ -146,6 +145,5 @@ mod tests {
       Err(GetError::NotFound(..)) => (),
       Err(..) => panic!("unexpected error: {:?}", result),
     }
-    Ok(())
   }
 }

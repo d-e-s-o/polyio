@@ -78,31 +78,24 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn request_aapl_news() -> Result<(), Error> {
-    let client = Client::from_env()?;
+  async fn request_aapl_news() {
+    let client = Client::from_env().unwrap();
     let req = NewsReq {
       symbol: "AAPL".into(),
       per_page: 5,
       page: 1,
     };
-    let news = client
-      .issue::<Get>(req)
-      .await
-      .map_err(EndpointError::from)?;
+    let news = client.issue::<Get>(req).await.unwrap();
 
     assert!(news.len() > 0, news);
     for item in news {
       assert!(item.symbols.contains(&"AAPL".to_string()), item);
     }
-    Ok(())
   }
 }
