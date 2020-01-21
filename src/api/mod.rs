@@ -3,6 +3,8 @@
 
 mod response;
 
+/// Definitions surrounding aggregate prices of stocks.
+pub mod aggregates;
 /// Definitions pertaining the available exchanges.
 pub mod exchanges;
 /// Definitions pertaining the available locales.
