@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.1.1
+-----
 - Added support for retrieving stock aggregates
 - Added support for retrieving ticker news items
 - Made stream event types serializable
