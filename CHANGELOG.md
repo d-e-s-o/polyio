@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Made `Aggregate`, `Quote`, and `Trade` types publicly available
+
+
 0.1.1
 -----
 - Added support for retrieving stock aggregates

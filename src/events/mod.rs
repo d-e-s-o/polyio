@@ -6,6 +6,9 @@ mod stock;
 mod stream;
 mod subscription;
 
+pub use stock::Aggregate;
+pub use stock::Quote;
+pub use stock::Trade;
 pub use stream::Event;
 pub use stream::Events;
 pub use stream::stream;
