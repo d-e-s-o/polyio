@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 mod handshake;
-mod stock;
 mod stream;
 mod subscription;
 
-pub use stock::Aggregate;
-pub use stock::Quote;
-pub use stock::Trade;
+pub use stream::Aggregate;
 pub use stream::Event;
 pub use stream::Events;
+pub use stream::Quote;
 pub use stream::stream;
+pub use stream::Trade;
 pub use subscription::Stock;
 pub use subscription::Subscription;
