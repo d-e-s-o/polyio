@@ -163,6 +163,15 @@ pub enum Event {
 }
 
 impl Event {
+  /// Retrieve the event's symbol.
+  pub fn symbol(&self) -> &str {
+    match self {
+      Event::SecondAggregate(aggregate) | Event::MinuteAggregate(aggregate) => &aggregate.symbol,
+      Event::Trade(trade) => &trade.symbol,
+      Event::Quote(quote) => &quote.symbol,
+    }
+  }
+
   #[cfg(test)]
   fn to_trade(&self) -> Option<&Trade> {
     match self {
