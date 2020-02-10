@@ -1,7 +1,7 @@
 Unreleased
 ----------
 - Made `Aggregate`, `Quote`, and `Trade` types publicly available
-- Added `Event::symbol` method
+- Added `Event::symbol` and `Subscription::stock` methods
 
 
 0.1.1

@@ -40,6 +40,19 @@ pub enum Subscription {
   Quotes(Stock),
 }
 
+impl Subscription {
+  /// Retrieve the `Stock` object common to all variants in a
+  /// `Subscription`.
+  pub fn stock(&self) -> &Stock {
+    match self {
+      Subscription::SecondAggregates(stock)
+      | Subscription::MinuteAggregates(stock)
+      | Subscription::Trades(stock)
+      | Subscription::Quotes(stock) => &stock,
+    }
+  }
+}
+
 impl Display for Subscription {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
