@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Bumped `websocket-util` dependency to `0.3`
+- Bumped `async-tungstenite` dependency to `0.4`
+
+
 0.1.2
 -----
 - Made `Aggregate`, `Quote`, and `Trade` types publicly available
