@@ -19,8 +19,10 @@ use hyper_tls::HttpsConnector;
 
 use tracing::debug;
 use tracing::info;
-use tracing::info_span;
 use tracing::instrument;
+use tracing::span;
+use tracing::Level;
+use tracing_futures::Instrument;
 
 use serde_json::Error as JsonError;
 
@@ -124,29 +126,34 @@ impl Client {
     E: Endpoint,
   {
     let req = self.request::<E>(&input)?;
-    let span = info_span!(
+    let span = span!(
+      Level::INFO,
       "request",
       method = display(&req.method()),
       url = display(&req.uri()),
     );
-    let _guard = span.enter();
-    info!("requesting");
-    debug!(request = debug(&req));
 
-    let result = self.client.request(req).await?;
-    let status = result.status();
-    info!(status = debug(&status));
-    debug!(response = debug(&result));
+    async move {
+      info!("requesting");
+      debug!(request = debug(&req));
 
-    let bytes = to_bytes(result.into_body()).await?;
-    let body = bytes.as_ref();
+      let result = self.client.request(req).await?;
+      let status = result.status();
+      info!(status = debug(&status));
+      debug!(response = debug(&result));
 
-    match from_utf8(body) {
-      Ok(s) => debug!(body = display(&s)),
-      Err(b) => debug!(body = display(&b)),
+      let bytes = to_bytes(result.into_body()).await?;
+      let body = bytes.as_ref();
+
+      match from_utf8(body) {
+        Ok(s) => debug!(body = display(&s)),
+        Err(b) => debug!(body = display(&b)),
+      }
+
+      E::evaluate(status, body)
     }
-
-    E::evaluate(status, body)
+    .instrument(span)
+    .await
   }
 
   /// Subscribe to the given stream in order to receive updates.
