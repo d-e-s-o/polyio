@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Bumped `time-util` dependency to `0.2`
 - Bumped `websocket-util` dependency to `0.3`
 - Bumped `async-tungstenite` dependency to `0.4`
 
