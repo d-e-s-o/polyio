@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Assume Eastern time when deserializing streamed market data
+
+
 0.2.0
 -----
 - Bumped `time-util` dependency to `0.2`

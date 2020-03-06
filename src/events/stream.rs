@@ -11,8 +11,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 
-use time_util::system_time_from_millis;
-use time_util::system_time_to_millis;
+use time_util::system_time_from_millis_in_tz;
+use time_util::system_time_to_millis_in_tz;
+use time_util::EST;
 
 use tracing::debug;
 use tracing::info;
@@ -49,8 +50,8 @@ pub struct Trade {
   /// The trade's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_millis",
-    serialize_with = "system_time_to_millis",
+    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
+    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
   )]
   pub timestamp: SystemTime,
 }
@@ -86,8 +87,8 @@ pub struct Quote {
   /// The quote's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_millis",
-    serialize_with = "system_time_to_millis",
+    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
+    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
   )]
   pub timestamp: SystemTime,
 }
@@ -130,15 +131,15 @@ pub struct Aggregate {
   /// The tick's start timestamp (in UNIX milliseconds).
   #[serde(
     rename = "s",
-    deserialize_with = "system_time_from_millis",
-    serialize_with = "system_time_to_millis",
+    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
+    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
   )]
   pub start_timestamp: SystemTime,
   /// The tick's end timestamp (in UNIX milliseconds).
   #[serde(
     rename = "e",
-    deserialize_with = "system_time_from_millis",
-    serialize_with = "system_time_to_millis",
+    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
+    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
   )]
   pub end_timestamp: SystemTime,
 }
@@ -228,8 +229,6 @@ mod tests {
   use super::*;
 
   use std::future::Future;
-  use std::time::Duration;
-  use std::time::UNIX_EPOCH;
 
   use futures::future::ready;
   use futures::SinkExt;
@@ -240,6 +239,8 @@ mod tests {
   use serde_json::to_string as to_json;
 
   use test_env_log::test;
+
+  use time_util::parse_system_time_from_str;
 
   use tungstenite::tungstenite::Message;
 
@@ -296,22 +297,24 @@ mod tests {
   fn deserialize_serialize_trade() {
     let response = r#"{
       "ev": "T",
-      "sym": "MSFT",
-      "x": 4,
-      "p": 114.125,
+      "sym": "SPY",
+      "i": 436698869,
+      "x": 19,
+      "p": 293.67,
       "s": 100,
-      "c": [0, 12],
-      "t": 1536036818784
+      "c": [],
+      "t": 1583527402638,
+      "z": 2
     }"#;
     let trade = from_json::<Trade>(&response).unwrap();
-    assert_eq!(trade.symbol, "MSFT");
-    assert_eq!(trade.exchange, 4);
-    assert_eq!(trade.price, Num::new(114125, 1000));
+    assert_eq!(trade.symbol, "SPY");
+    assert_eq!(trade.exchange, 19);
+    assert_eq!(trade.price, Num::new(29367, 100));
     assert_eq!(trade.quantity, 100);
-    assert_eq!(trade.conditions, vec![0, 12]);
+    assert_eq!(trade.conditions, Vec::<u64>::new());
     assert_eq!(
       trade.timestamp,
-      UNIX_EPOCH + Duration::from_millis(1536036818784),
+      parse_system_time_from_str("2020-03-06T15:43:22.638Z").unwrap()
     );
 
     let json = to_json(&trade).unwrap();
@@ -323,28 +326,29 @@ mod tests {
   fn deserialize_serialize_quote() {
     let response = r#"{
       "ev": "Q",
-      "sym": "MSFT",
-      "bx": 4,
-      "bp": 114.125,
-      "bs": 100,
-      "ax": 7,
-      "ap": 114.128,
-      "as": 160,
+      "sym": "SPY",
       "c": 0,
-      "t": 1536036818784
+      "bx": 12,
+      "ax": 11,
+      "bp": 294.31,
+      "ap": 294.33,
+      "bs": 1,
+      "as": 2,
+      "t": 1583527004684,
+      "z": 2
     }"#;
     let quote = from_json::<Quote>(&response).unwrap();
-    assert_eq!(quote.symbol, "MSFT");
-    assert_eq!(quote.bid_exchange, 4);
-    assert_eq!(quote.bid_price, Num::new(114125, 1000));
-    assert_eq!(quote.bid_quantity, 100);
-    assert_eq!(quote.ask_exchange, 7);
-    assert_eq!(quote.ask_price, Num::new(114128, 1000));
-    assert_eq!(quote.ask_quantity, 160);
+    assert_eq!(quote.symbol, "SPY");
+    assert_eq!(quote.bid_exchange, 12);
+    assert_eq!(quote.bid_price, Num::new(29431, 100));
+    assert_eq!(quote.bid_quantity, 1);
+    assert_eq!(quote.ask_exchange, 11);
+    assert_eq!(quote.ask_price, Num::new(29433, 100));
+    assert_eq!(quote.ask_quantity, 2);
     assert_eq!(quote.condition, 0);
     assert_eq!(
       quote.timestamp,
-      UNIX_EPOCH + Duration::from_millis(1536036818784),
+      parse_system_time_from_str("2020-03-06T15:36:44.684Z").unwrap()
     );
 
     let json = to_json(&quote).unwrap();
@@ -355,42 +359,42 @@ mod tests {
   #[test]
   fn deserialize_serialize_aggregate() {
     let response = r#"{
-      "ev": "AM",
-      "sym": "MSFT",
-      "v": 10204,
-      "av": 200304,
-      "op": 114.04,
-      "vw": 114.4040,
-      "o": 114.11,
-      "c": 114.14,
-      "h": 114.19,
-      "l": 114.09,
-      "a": 114.1314,
-      "s": 1536036818784,
-      "e": 1536036818784
+      "ev": "A",
+      "sym": "SPY",
+      "v": 2287,
+      "av": 163569633,
+      "op": 298.71,
+      "vw": 294.6301,
+      "o": 293.79,
+      "c": 293.68,
+      "h": 293.8,
+      "l": 293.68,
+      "a": 293.7442,
+      "s": 1583527401000,
+      "e": 1583527402000
     }"#;
 
     let aggregate = from_json::<Aggregate>(&response).unwrap();
-    assert_eq!(aggregate.symbol, "MSFT");
-    assert_eq!(aggregate.volume, 10204);
-    assert_eq!(aggregate.accumulated_volume, 200304);
-    assert_eq!(aggregate.open_price_today, Num::new(11404, 100));
+    assert_eq!(aggregate.symbol, "SPY");
+    assert_eq!(aggregate.volume, 2287);
+    assert_eq!(aggregate.accumulated_volume, 163569633);
+    assert_eq!(aggregate.open_price_today, Num::new(29871, 100));
     assert_eq!(
       aggregate.volume_weighted_average_price,
-      Num::new(1144040, 10000),
+      Num::new(2946301, 10000),
     );
-    assert_eq!(aggregate.open_price, Num::new(11411, 100));
-    assert_eq!(aggregate.close_price, Num::new(11414, 100));
-    assert_eq!(aggregate.high_price, Num::new(11419, 100));
-    assert_eq!(aggregate.low_price, Num::new(11409, 100));
-    assert_eq!(aggregate.average_price, Num::new(1141314, 10000));
+    assert_eq!(aggregate.open_price, Num::new(29379, 100));
+    assert_eq!(aggregate.close_price, Num::new(29368, 100));
+    assert_eq!(aggregate.high_price, Num::new(2938, 10));
+    assert_eq!(aggregate.low_price, Num::new(29368, 100));
+    assert_eq!(aggregate.average_price, Num::new(2937442, 10000));
     assert_eq!(
       aggregate.start_timestamp,
-      UNIX_EPOCH + Duration::from_millis(1536036818784),
+      parse_system_time_from_str("2020-03-06T15:43:21Z").unwrap()
     );
     assert_eq!(
       aggregate.end_timestamp,
-      UNIX_EPOCH + Duration::from_millis(1536036818784),
+      parse_system_time_from_str("2020-03-06T15:43:22Z").unwrap()
     );
 
     let json = to_json(&aggregate).unwrap();
