@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Assume Eastern time when deserializing streamed market data
+- Serialize stock aggregates in millisecond format
 
 
 0.2.0

@@ -16,7 +16,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use time_util::system_time_from_millis_in_tz;
-use time_util::system_time_to_rfc3339;
+use time_util::system_time_to_millis_in_tz;
 use time_util::EST;
 
 use crate::api::response::Response;
@@ -101,7 +101,7 @@ pub struct Aggregate {
   #[serde(
     rename = "t",
     deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
-    serialize_with = "system_time_to_rfc3339",
+    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
   )]
   pub timestamp: SystemTime,
   /// The trade volume during the aggregated time frame.
@@ -155,6 +155,7 @@ mod tests {
   use super::*;
 
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
   use test_env_log::test;
 
@@ -164,7 +165,7 @@ mod tests {
 
 
   #[test]
-  fn deserialize_aggregate() {
+  fn deserialize_serialize_aggregate() {
     let response = r#"{
   "v": 31315282,
   "o": 102.87,
@@ -185,6 +186,10 @@ mod tests {
     assert_eq!(aggregate.close_price, Num::new(10374, 100));
     assert_eq!(aggregate.high_price, Num::new(10382, 100));
     assert_eq!(aggregate.low_price, Num::new(10265, 100));
+
+    let json = to_json(&aggregate).unwrap();
+    let new = from_json::<Aggregate>(&json).unwrap();
+    assert_eq!(new, aggregate);
   }
 
   #[test]
