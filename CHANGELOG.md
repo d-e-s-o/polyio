@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Assume Eastern time when deserializing streamed market data
 - Serialize stock aggregates in millisecond format
+- Removed `Aggregate::open_price_today` member
 
 
 0.2.0

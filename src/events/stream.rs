@@ -106,9 +106,6 @@ pub struct Aggregate {
   /// The accumulated volume.
   #[serde(rename = "av")]
   pub accumulated_volume: u64,
-  /// Today's official opening price.
-  #[serde(rename = "op")]
-  pub open_price_today: Num,
   /// Volume weighted average price.
   #[serde(rename = "vw")]
   pub volume_weighted_average_price: Num,
@@ -378,7 +375,6 @@ mod tests {
     assert_eq!(aggregate.symbol, "SPY");
     assert_eq!(aggregate.volume, 2287);
     assert_eq!(aggregate.accumulated_volume, 163569633);
-    assert_eq!(aggregate.open_price_today, Num::new(29871, 100));
     assert_eq!(
       aggregate.volume_weighted_average_price,
       Num::new(2946301, 10000),
