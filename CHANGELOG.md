@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.3.0
+-----
 - Introduced `Client::new` constructor
 - Assume Eastern time when deserializing streamed market data
 - Serialize stock aggregates in millisecond format
