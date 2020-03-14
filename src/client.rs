@@ -91,12 +91,16 @@ pub struct Client {
 }
 
 impl Client {
+  /// Create a new `Client` using the given API information.
+  pub fn new(api_info: ApiInfo) -> Self {
+    let client = HttpClient::builder().build(HttpsConnector::new());
+    Self { api_info, client }
+  }
+
   /// Create a new `Client` with information from the environment.
   pub fn from_env() -> Result<Self, Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = HttpClient::builder().build(HttpsConnector::new());
-
-    Ok(Self { api_info, client })
+    Ok(Self::new(api_info))
   }
 
   /// Create a `Request` to the endpoint.

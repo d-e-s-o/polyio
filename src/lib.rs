@@ -18,6 +18,7 @@ mod events;
 
 use std::borrow::Cow;
 
+pub use api_info::ApiInfo;
 pub use client::Client;
 pub use error::Error;
 pub use events::Aggregate;
