@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `num-decimal` dependency to `0.2`
+
+
 0.3.0
 -----
 - Introduced `Client::new` constructor
