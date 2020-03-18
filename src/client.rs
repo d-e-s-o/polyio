@@ -18,9 +18,9 @@ use hyper::Request;
 use hyper_tls::HttpsConnector;
 
 use tracing::debug;
-use tracing::info;
 use tracing::instrument;
 use tracing::span;
+use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
@@ -124,34 +124,34 @@ impl Client {
   }
 
   /// Create and issue a request and decode the response.
-  #[instrument(level = "info", skip(self, input))]
+  #[instrument(level = "debug", skip(self, input))]
   pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, E::Error>
   where
     E: Endpoint,
   {
     let req = self.request::<E>(&input)?;
     let span = span!(
-      Level::INFO,
+      Level::DEBUG,
       "request",
       method = display(&req.method()),
       url = display(&req.uri()),
     );
 
     async move {
-      info!("requesting");
-      debug!(request = debug(&req));
+      debug!("requesting");
+      trace!(request = debug(&req));
 
       let result = self.client.request(req).await?;
       let status = result.status();
-      info!(status = debug(&status));
-      debug!(response = debug(&result));
+      debug!(status = debug(&status));
+      trace!(response = debug(&result));
 
       let bytes = to_bytes(result.into_body()).await?;
       let body = bytes.as_ref();
 
       match from_utf8(body) {
-        Ok(s) => debug!(body = display(&s)),
-        Err(b) => debug!(body = display(&b)),
+        Ok(s) => trace!(body = display(&s)),
+        Err(b) => trace!(body = display(&b)),
       }
 
       E::evaluate(status, body)
@@ -176,7 +176,7 @@ impl Client {
   }
 
   /// Implementation of `subscribe` that creates a proper span.
-  #[instrument(level = "info", skip(self))]
+  #[instrument(level = "debug", skip(self))]
   async fn subscribe_<S>(
     &self,
     subscriptions: S,

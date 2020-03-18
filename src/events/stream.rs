@@ -16,7 +16,7 @@ use time_util::system_time_to_millis_in_tz;
 use time_util::EST;
 
 use tracing::debug;
-use tracing::info;
+use tracing::trace;
 
 use tungstenite::tokio::connect_async_with_tls_connector;
 use tungstenite::tungstenite::Error as WebSocketError;
@@ -207,14 +207,14 @@ where
     api_key,
   } = api_info;
 
-  info!(message = "connecting", url = display(&url));
+  debug!(message = "connecting", url = display(&url));
 
   let (mut stream, response) = connect_async_with_tls_connector(url, None).await?;
-  info!("connection successful");
-  debug!(response = debug(&response));
+  debug!("connection successful");
+  trace!(response = debug(&response));
 
   handshake(&mut stream, api_key, subscriptions).await?;
-  info!("subscription successful");
+  debug!("subscription successful");
 
   let stream = do_stream(stream).await;
   Ok(stream)

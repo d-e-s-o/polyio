@@ -9,8 +9,8 @@ use futures::TryFutureExt;
 
 use tracing::debug;
 use tracing::error;
-use tracing::info;
 use tracing::instrument;
+use tracing::trace;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -115,7 +115,7 @@ where
 {
   let request = Request::new(Action::Authenticate, api_key);
   let json = to_json(&request).unwrap();
-  debug!(request = display(&json));
+  trace!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -145,7 +145,7 @@ where
     cnt += 1;
     (subs, cnt)
   });
-  info!(subscriptions = display(&subscriptions));
+  debug!(subscriptions = display(&subscriptions));
 
   let request = Request::new(Action::Subscribe, subscriptions);
   Ok((request, count))
@@ -160,7 +160,7 @@ where
 {
   let (request, count) = make_subscribe_request(subscriptions)?;
   let json = to_json(&request).unwrap();
-  debug!(request = display(&json));
+  trace!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -230,7 +230,7 @@ where
       .await
       .ok_or_else(|| Error::Str("websocket connection closed unexpectedly".into()))?;
     let msg = result?;
-    debug!(response = display(&msg));
+    trace!(response = display(&msg));
 
     count = match msg {
       Message::Text(text) => check_responses(text.as_bytes(), expected, count, operation)?,
@@ -251,7 +251,7 @@ where
 }
 
 
-#[instrument(level = "debug", skip(stream, api_key))]
+#[instrument(level = "trace", skip(stream, api_key))]
 async fn authenticate<S>(stream: &mut S, api_key: String) -> Result<(), Error>
 where
   S: Stream<Item = Result<Message, WebSocketError>>,
@@ -263,7 +263,7 @@ where
 }
 
 
-#[instrument(level = "debug", skip(stream, subscriptions))]
+#[instrument(level = "trace", skip(stream, subscriptions))]
 async fn subscribe<S, I>(stream: &mut S, subscriptions: I) -> Result<(), Error>
 where
   S: Stream<Item = Result<Message, WebSocketError>>,
