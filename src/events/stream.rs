@@ -233,7 +233,7 @@ mod tests {
 
   use time_util::parse_system_time_from_str;
 
-  use tungstenite::tungstenite::Message;
+  use tungstenite::tungstenite::Message as WebSocketMessage;
 
   use url::Url;
 
@@ -442,30 +442,34 @@ mod tests {
   async fn stream_msft() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       stream
-        .send(Message::Text(CONNECTED_MSG.to_string()))
+        .send(WebSocketMessage::Text(CONNECTED_MSG.to_string()))
         .await?;
 
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        WebSocketMessage::Text(AUTH_REQ.to_string()),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(WebSocketMessage::Text(AUTH_RESP.to_string()))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(SUB_REQ.to_string()),
+        WebSocketMessage::Text(SUB_REQ.to_string()),
       );
-      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+      stream
+        .send(WebSocketMessage::Text(SUB_RESP.to_string()))
+        .await?;
 
       stream
-        .send(Message::Text(MSFT_TRADE_MSG.to_string()))
+        .send(WebSocketMessage::Text(MSFT_TRADE_MSG.to_string()))
         .await?;
       stream
-        .send(Message::Text(UFO_QUOTE_MSG.to_string()))
+        .send(WebSocketMessage::Text(UFO_QUOTE_MSG.to_string()))
         .await?;
-      stream.send(Message::Close(None)).await?;
+      stream.send(WebSocketMessage::Close(None)).await?;
       Ok(())
     }
 
@@ -495,31 +499,35 @@ mod tests {
   async fn interleaved_trade() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       stream
-        .send(Message::Text(CONNECTED_MSG.to_string()))
+        .send(WebSocketMessage::Text(CONNECTED_MSG.to_string()))
         .await?;
 
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        WebSocketMessage::Text(AUTH_REQ.to_string()),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(WebSocketMessage::Text(AUTH_RESP.to_string()))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(SUB_REQ.to_string()),
+        WebSocketMessage::Text(SUB_REQ.to_string()),
       );
 
       // We have seen cases where the subscription response is actually
       // preceded by an event we just subscribed to. Ugh. So simulate
       // such a case to make sure we can deal with such races.
       stream
-        .send(Message::Text(MSFT_TRADE_MSG.to_string()))
+        .send(WebSocketMessage::Text(MSFT_TRADE_MSG.to_string()))
         .await?;
-      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+      stream
+        .send(WebSocketMessage::Text(SUB_RESP.to_string()))
+        .await?;
 
-      stream.send(Message::Close(None)).await?;
+      stream.send(WebSocketMessage::Close(None)).await?;
       Ok(())
     }
 

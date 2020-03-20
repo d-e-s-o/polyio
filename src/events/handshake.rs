@@ -18,7 +18,7 @@ use serde_json::from_slice as from_json;
 use serde_json::to_string as to_json;
 
 use tungstenite::tungstenite::Error as WebSocketError;
-use tungstenite::tungstenite::Message;
+use tungstenite::tungstenite::Message as WebSocketMsg;
 
 use crate::Error;
 use crate::events::Subscription;
@@ -111,14 +111,14 @@ struct Responses(Vec<Response>);
 /// Authenticate with the streaming service.
 async fn auth<S>(stream: &mut S, api_key: String) -> Result<(), WebSocketError>
 where
-  S: Sink<Message, Error = WebSocketError> + Unpin,
+  S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
 {
   let request = Request::new(Action::Authenticate, api_key);
   let json = to_json(&request).unwrap();
   trace!(request = display(&json));
 
   stream
-    .send(Message::text(json).into())
+    .send(WebSocketMsg::text(json).into())
     .map_err(|e| {
       error!("failed to send stream auth request: {}", e);
       e
@@ -155,7 +155,7 @@ where
 /// Subscribe to the given subscriptions.
 async fn subscribe_stocks<S, I>(stream: &mut S, subscriptions: I) -> Result<usize, WebSocketError>
 where
-  S: Sink<Message, Error = WebSocketError> + Unpin,
+  S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
   I: IntoIterator<Item = Subscription>,
 {
   let (request, count) = make_subscribe_request(subscriptions)?;
@@ -163,7 +163,7 @@ where
   trace!(request = display(&json));
 
   stream
-    .send(Message::text(json).into())
+    .send(WebSocketMsg::text(json).into())
     .map_err(|e| {
       error!("failed to send stream subscribe request: {}", e);
       e
@@ -221,8 +221,8 @@ async fn await_responses<S>(
   operation: &str,
 ) -> Result<(), Error>
 where
-  S: Stream<Item = Result<Message, WebSocketError>>,
-  S: Sink<Message, Error = WebSocketError> + Unpin,
+  S: Stream<Item = Result<WebSocketMsg, WebSocketError>>,
+  S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
 {
   while count > 0 {
     let result = stream
@@ -233,14 +233,14 @@ where
     trace!(response = display(&msg));
 
     count = match msg {
-      Message::Text(text) => check_responses(text.as_bytes(), expected, count, operation)?,
-      Message::Binary(data) => check_responses(data.as_slice(), expected, count, operation)?,
-      Message::Ping(dat) => {
-        stream.send(Message::Pong(dat)).await?;
+      WebSocketMsg::Text(text) => check_responses(text.as_bytes(), expected, count, operation)?,
+      WebSocketMsg::Binary(data) => check_responses(data.as_slice(), expected, count, operation)?,
+      WebSocketMsg::Ping(dat) => {
+        stream.send(WebSocketMsg::Pong(dat)).await?;
         count
       },
-      Message::Pong(..) => count,
-      Message::Close(..) => {
+      WebSocketMsg::Pong(..) => count,
+      WebSocketMsg::Close(..) => {
         return Err(Error::Str(
           "websocket connection closed unexpectedly".into(),
         ))
@@ -254,8 +254,8 @@ where
 #[instrument(level = "trace", skip(stream, api_key))]
 async fn authenticate<S>(stream: &mut S, api_key: String) -> Result<(), Error>
 where
-  S: Stream<Item = Result<Message, WebSocketError>>,
-  S: Sink<Message, Error = WebSocketError> + Unpin,
+  S: Stream<Item = Result<WebSocketMsg, WebSocketError>>,
+  S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
 {
   auth(stream, api_key).await?;
   await_responses(stream, Code::AuthSuccess, 1, "authentication").await?;
@@ -266,8 +266,8 @@ where
 #[instrument(level = "trace", skip(stream, subscriptions))]
 async fn subscribe<S, I>(stream: &mut S, subscriptions: I) -> Result<(), Error>
 where
-  S: Stream<Item = Result<Message, WebSocketError>>,
-  S: Sink<Message, Error = WebSocketError> + Unpin,
+  S: Stream<Item = Result<WebSocketMsg, WebSocketError>>,
+  S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
   I: IntoIterator<Item = Subscription>,
 {
   let count = subscribe_stocks(stream, subscriptions).await?;
@@ -279,8 +279,8 @@ where
 /// Authenticate with and subscribe to Polygon ticker events.
 pub async fn handshake<S, I>(stream: &mut S, api_key: String, subscriptions: I) -> Result<(), Error>
 where
-  S: Stream<Item = Result<Message, WebSocketError>>,
-  S: Sink<Message, Error = WebSocketError> + Unpin,
+  S: Stream<Item = Result<WebSocketMsg, WebSocketError>>,
+  S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
   I: IntoIterator<Item = Subscription>,
 {
   // Initial confirmation of connection.
