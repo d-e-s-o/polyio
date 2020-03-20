@@ -12,7 +12,6 @@ use tracing::error;
 use tracing::instrument;
 use tracing::trace;
 
-use serde::Deserialize;
 use serde::Serialize;
 use serde_json::from_slice as from_json;
 use serde_json::to_string as to_json;
@@ -21,6 +20,9 @@ use tungstenite::tungstenite::Error as WebSocketError;
 use tungstenite::tungstenite::Message as WebSocketMsg;
 
 use crate::Error;
+use crate::events::stream::Code;
+use crate::events::stream::Message;
+use crate::events::stream::Messages;
 use crate::events::Subscription;
 
 
@@ -43,69 +45,6 @@ impl Request {
     Self { action, params }
   }
 }
-
-
-/// A status code indication for an operation.
-#[derive(Copy, Clone, Debug, Deserialize, PartialEq)]
-enum Code {
-  #[serde(rename = "connected")]
-  Connected,
-  #[serde(rename = "auth_success")]
-  AuthSuccess,
-  #[serde(rename = "auth_failed")]
-  AuthFailure,
-  #[serde(rename = "success")]
-  Success,
-}
-
-
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-struct Status {
-  #[serde(rename = "status")]
-  pub code: Code,
-  #[serde(rename = "message")]
-  pub message: String,
-}
-
-
-/// A message as we receive it from the Polygon API.
-///
-/// The Polygon API mixes control messages (status messages) with actual
-/// event data freely. We do not want to expose control messages to
-/// clients and so we have our own type for evaluating them. In a
-/// nutshell, while we still accept actual event data, it is not parsed
-/// and simply ignored by the logic.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-#[serde(tag = "ev")]
-enum Message {
-  #[serde(rename = "status")]
-  Status(Status),
-  #[serde(rename = "A")]
-  SecondAggregate,
-  #[serde(rename = "AM")]
-  MinuteAggregate,
-  #[serde(rename = "T")]
-  Trade,
-  #[serde(rename = "Q")]
-  Quote,
-}
-
-#[cfg(test)]
-impl Message {
-  pub fn into_status(self) -> Option<Status> {
-    match self {
-      Message::Status(status) => Some(status),
-      _ => None,
-    }
-  }
-}
-
-
-// Note that Polygon responds with an array of status messages because
-// it supports subscription to multiple streams and sends a response for
-// each.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-struct Messages(Vec<Message>);
 
 
 /// Authenticate with the streaming service.

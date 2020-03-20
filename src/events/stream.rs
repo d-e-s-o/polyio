@@ -136,6 +136,69 @@ pub struct Aggregate {
 }
 
 
+/// A status code indication for an operation.
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq)]
+pub(crate) enum Code {
+  #[serde(rename = "connected")]
+  Connected,
+  #[serde(rename = "auth_success")]
+  AuthSuccess,
+  #[serde(rename = "auth_failed")]
+  AuthFailure,
+  #[serde(rename = "success")]
+  Success,
+}
+
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub(crate) struct Status {
+  #[serde(rename = "status")]
+  pub code: Code,
+  #[serde(rename = "message")]
+  pub message: String,
+}
+
+
+/// A message as we receive it from the Polygon API.
+///
+/// The Polygon API mixes control messages (status messages) with actual
+/// event data freely. We do not want to expose control messages to
+/// clients and so we have our own type for evaluating them. In a
+/// nutshell, while we still accept actual event data, it is not parsed
+/// and simply ignored by the logic.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(tag = "ev")]
+pub(crate) enum Message {
+  #[serde(rename = "status")]
+  Status(Status),
+  #[serde(rename = "A")]
+  SecondAggregate,
+  #[serde(rename = "AM")]
+  MinuteAggregate,
+  #[serde(rename = "T")]
+  Trade,
+  #[serde(rename = "Q")]
+  Quote,
+}
+
+#[cfg(test)]
+impl Message {
+  pub fn into_status(self) -> Option<Status> {
+    match self {
+      Message::Status(status) => Some(status),
+      _ => None,
+    }
+  }
+}
+
+
+// Note that Polygon responds with an array of status messages because
+// it supports subscription to multiple streams and sends a response for
+// each.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub(crate) struct Messages(pub Vec<Message>);
+
+
 /// An enum representing the type of event we received from Polygon.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "ev")]
