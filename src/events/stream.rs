@@ -3,7 +3,9 @@
 
 use std::time::SystemTime;
 
+use futures::future::ok;
 use futures::Stream;
+use futures::TryStreamExt;
 
 use num_decimal::Num;
 
@@ -172,13 +174,13 @@ pub(crate) enum Message {
   #[serde(rename = "status")]
   Status(Status),
   #[serde(rename = "A")]
-  SecondAggregate,
+  SecondAggregate(Aggregate),
   #[serde(rename = "AM")]
-  MinuteAggregate,
+  MinuteAggregate(Aggregate),
   #[serde(rename = "T")]
-  Trade,
+  Trade(Trade),
   #[serde(rename = "Q")]
-  Quote,
+  Quote(Quote),
 }
 
 #[cfg(test)]
@@ -273,7 +275,37 @@ where
   handshake(&mut stream, api_key, subscriptions).await?;
   debug!("subscription successful");
 
-  let stream = do_stream(stream).await;
+  let stream = do_stream::<_, Messages>(stream)
+    .await
+    .try_filter_map(|result| {
+      let result = match result {
+        Ok(messages) => {
+          let mut events = Vec::with_capacity(messages.0.len());
+          for message in messages.0 {
+            let event = match message {
+              Message::Status(..) => continue,
+              Message::SecondAggregate(aggregate) => Event::SecondAggregate(aggregate),
+              Message::MinuteAggregate(aggregate) => Event::MinuteAggregate(aggregate),
+              Message::Trade(trade) => Event::Trade(trade),
+              Message::Quote(quote) => Event::Quote(quote),
+            };
+
+            events.push(event)
+          }
+
+          // If we have events left after filtering out all status
+          // messages then emit those.
+          if events.len() > 0 {
+            Some(Ok(events))
+          } else {
+            None
+          }
+        },
+        Err(err) => Some(Err(err)),
+      };
+      ok(result)
+    });
+
   Ok(stream)
 }
 
@@ -489,14 +521,14 @@ mod tests {
        "ap":59.89,"bs":28,"as":65,"t":1577724127207,"z":2}
     ]"#;
 
-    let events = from_json::<Events>(&response).unwrap();
-    assert_eq!(events.len(), 2);
-    match &events[0] {
-      Event::Quote(Quote { symbol, .. }) if symbol == "XLE" => (),
+    let messages = from_json::<Messages>(&response).unwrap();
+    assert_eq!(messages.0.len(), 2);
+    match &messages.0[0] {
+      Message::Quote(Quote { symbol, .. }) if symbol == "XLE" => (),
       e => panic!("unexpected event: {:?}", e),
     }
-    match &events[1] {
-      Event::Quote(Quote { symbol, .. }) if symbol == "AAPL" => (),
+    match &messages.0[1] {
+      Message::Quote(Quote { symbol, .. }) if symbol == "AAPL" => (),
       e => panic!("unexpected event: {:?}", e),
     }
   }
