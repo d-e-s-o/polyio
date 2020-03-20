@@ -95,6 +95,7 @@ pub struct Quote {
 
 
 /// An aggregate for a stock.
+// TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Aggregate {
   /// The stock's symbol.
@@ -103,9 +104,6 @@ pub struct Aggregate {
   /// The tick volume.
   #[serde(rename = "v")]
   pub volume: u64,
-  /// The accumulated volume.
-  #[serde(rename = "av")]
-  pub accumulated_volume: u64,
   /// Volume weighted average price.
   #[serde(rename = "vw")]
   pub volume_weighted_average_price: Num,
@@ -121,10 +119,6 @@ pub struct Aggregate {
   /// The tick's low price.
   #[serde(rename = "l")]
   pub low_price: Num,
-  /// The tick's average price divided by the volume weighted average
-  /// price.
-  #[serde(rename = "a")]
-  pub average_price: Num,
   /// The tick's start timestamp (in UNIX milliseconds).
   #[serde(
     rename = "s",
@@ -374,7 +368,6 @@ mod tests {
     let aggregate = from_json::<Aggregate>(&response).unwrap();
     assert_eq!(aggregate.symbol, "SPY");
     assert_eq!(aggregate.volume, 2287);
-    assert_eq!(aggregate.accumulated_volume, 163569633);
     assert_eq!(
       aggregate.volume_weighted_average_price,
       Num::new(2946301, 10000),
@@ -383,7 +376,6 @@ mod tests {
     assert_eq!(aggregate.close_price, Num::new(29368, 100));
     assert_eq!(aggregate.high_price, Num::new(2938, 10));
     assert_eq!(aggregate.low_price, Num::new(29368, 100));
-    assert_eq!(aggregate.average_price, Num::new(2937442, 10000));
     assert_eq!(
       aggregate.start_timestamp,
       parse_system_time_from_str("2020-03-06T15:43:21Z").unwrap()

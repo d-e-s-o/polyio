@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Removed `Aggregate::accumulated_volume` and `Aggregate::average_price`
+  members
 - Decreased tracing verbosity by one level
 - Bumped `num-decimal` dependency to `0.2`
 
