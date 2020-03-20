@@ -68,7 +68,7 @@ struct Status {
 }
 
 
-/// A response as we receive it from the Polygon API.
+/// A message as we receive it from the Polygon API.
 ///
 /// The Polygon API mixes control messages (status messages) with actual
 /// event data freely. We do not want to expose control messages to
@@ -77,7 +77,7 @@ struct Status {
 /// and simply ignored by the logic.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(tag = "ev")]
-enum Response {
+enum Message {
   #[serde(rename = "status")]
   Status(Status),
   #[serde(rename = "A")]
@@ -91,10 +91,10 @@ enum Response {
 }
 
 #[cfg(test)]
-impl Response {
+impl Message {
   pub fn into_status(self) -> Option<Status> {
     match self {
-      Response::Status(status) => Some(status),
+      Message::Status(status) => Some(status),
       _ => None,
     }
   }
@@ -105,7 +105,7 @@ impl Response {
 // it supports subscription to multiple streams and sends a response for
 // each.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-struct Responses(Vec<Response>);
+struct Messages(Vec<Message>);
 
 
 /// Authenticate with the streaming service.
@@ -187,10 +187,10 @@ fn check_responses(
 ) -> Result<usize, Error> {
   debug_assert!(count > 0, count);
 
-  let responses = from_json::<Responses>(msg)?.0;
-  for response in responses {
-    match response {
-      Response::Status(status) => {
+  let messages = from_json::<Messages>(msg)?.0;
+  for message in messages {
+    match message {
+      Message::Status(status) => {
         if status.code != expected {
           let err = format!("{} not successful: {}", operation, status.message);
           return Err(Error::Str(err.into()))
@@ -230,7 +230,7 @@ where
       .await
       .ok_or_else(|| Error::Str("websocket connection closed unexpectedly".into()))?;
     let msg = result?;
-    trace!(response = display(&msg));
+    trace!(message = display(&msg));
 
     count = match msg {
       WebSocketMsg::Text(text) => check_responses(text.as_bytes(), expected, count, operation)?,
@@ -331,11 +331,11 @@ mod tests {
   #[test]
   fn decode_auth_response() {
     let json = r#"[{"ev":"status","status":"success","message":"authenticated"}]"#;
-    let mut resp = from_json::<Responses>(json).unwrap().0;
+    let mut messages = from_json::<Messages>(json).unwrap().0;
 
-    assert_eq!(resp.len(), 1);
+    assert_eq!(messages.len(), 1);
 
-    let status = resp.remove(0).into_status().unwrap();
+    let status = messages.remove(0).into_status().unwrap();
     assert_eq!(status.code, Code::Success);
     assert_eq!(status.message, "authenticated".to_string());
   }
@@ -343,11 +343,11 @@ mod tests {
   #[test]
   fn decode_auth_response_unauthorized() {
     let json = r#"[{"ev":"status","status":"auth_failed","message":"authentication failed"}]"#;
-    let mut resp = from_json::<Responses>(json).unwrap().0;
+    let mut messages = from_json::<Messages>(json).unwrap().0;
 
-    assert_eq!(resp.len(), 1);
+    assert_eq!(messages.len(), 1);
 
-    let status = resp.remove(0).into_status().unwrap();
+    let status = messages.remove(0).into_status().unwrap();
     assert_eq!(status.code, Code::AuthFailure);
     assert_eq!(status.message, "authentication failed".to_string());
   }
@@ -355,11 +355,11 @@ mod tests {
   #[test]
   fn decode_subscribe_response() {
     let json = r#"[{"ev":"status","status":"success","message":"subscribed to: T.MSFT"}]"#;
-    let mut resp = from_json::<Responses>(json).unwrap().0;
+    let mut messages = from_json::<Messages>(json).unwrap().0;
 
-    assert_eq!(resp.len(), 1);
+    assert_eq!(messages.len(), 1);
 
-    let status = resp.remove(0).into_status().unwrap();
+    let status = messages.remove(0).into_status().unwrap();
     assert_eq!(status.code, Code::Success);
     assert_eq!(status.message, "subscribed to: T.MSFT".to_string());
   }
