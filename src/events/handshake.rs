@@ -126,7 +126,7 @@ fn check_responses(
 ) -> Result<usize, Error> {
   debug_assert!(count > 0, count);
 
-  let messages = from_json::<Messages>(msg)?.0;
+  let messages = from_json::<Messages>(msg)?;
   for message in messages {
     match message {
       Message::Status(status) => {
@@ -270,7 +270,7 @@ mod tests {
   #[test]
   fn decode_auth_response() {
     let json = r#"[{"ev":"status","status":"success","message":"authenticated"}]"#;
-    let mut messages = from_json::<Messages>(json).unwrap().0;
+    let mut messages = from_json::<Messages>(json).unwrap();
 
     assert_eq!(messages.len(), 1);
 
@@ -282,7 +282,7 @@ mod tests {
   #[test]
   fn decode_auth_response_unauthorized() {
     let json = r#"[{"ev":"status","status":"auth_failed","message":"authentication failed"}]"#;
-    let mut messages = from_json::<Messages>(json).unwrap().0;
+    let mut messages = from_json::<Messages>(json).unwrap();
 
     assert_eq!(messages.len(), 1);
 
@@ -294,7 +294,7 @@ mod tests {
   #[test]
   fn decode_subscribe_response() {
     let json = r#"[{"ev":"status","status":"success","message":"subscribed to: T.MSFT"}]"#;
-    let mut messages = from_json::<Messages>(json).unwrap().0;
+    let mut messages = from_json::<Messages>(json).unwrap();
 
     assert_eq!(messages.len(), 1);
 

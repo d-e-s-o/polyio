@@ -199,8 +199,7 @@ impl Message {
 // Note that Polygon responds with an array of status messages because
 // it supports subscription to multiple streams and sends a response for
 // each.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-pub(crate) struct Messages(pub Vec<Message>);
+pub(crate) type Messages = Vec<Message>;
 
 
 /// An enum representing the type of event we received from Polygon.
@@ -258,8 +257,8 @@ pub type Events = Vec<Event>;
 /// for disconnects. On disconnect (and only then) a `WebSocketError` is
 /// returned.
 fn process_messages(messages: Messages) -> Option<Result<Events, WebSocketError>> {
-  let mut events = Vec::with_capacity(messages.0.len());
-  for message in messages.0 {
+  let mut events = Vec::with_capacity(messages.len());
+  for message in messages {
     let event = match message {
       Message::Status(status) => {
         if status.code == Code::Disconnected {
@@ -562,12 +561,12 @@ mod tests {
     ]"#;
 
     let messages = from_json::<Messages>(&response).unwrap();
-    assert_eq!(messages.0.len(), 2);
-    match &messages.0[0] {
+    assert_eq!(messages.len(), 2);
+    match &messages[0] {
       Message::Quote(Quote { symbol, .. }) if symbol == "XLE" => (),
       e => panic!("unexpected event: {:?}", e),
     }
-    match &messages.0[1] {
+    match &messages[1] {
       Message::Quote(Quote { symbol, .. }) if symbol == "AAPL" => (),
       e => panic!("unexpected event: {:?}", e),
     }
