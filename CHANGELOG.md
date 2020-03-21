@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.4.0
+-----
 - Added support for properly handling "disconnect" messages
 - Adjusted stream functionality to stream a single event at a time
 - Removed `Option` wrapper from aggregate response type
