@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for properly handling "disconnect" messages
+- Adjusted stream functionality to stream a single event at a time
 - Removed `Aggregate::accumulated_volume` and `Aggregate::average_price`
   members
 - Decreased tracing verbosity by one level

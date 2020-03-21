@@ -30,7 +30,7 @@ use tungstenite::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
-use crate::events::Events;
+use crate::events::Event;
 use crate::events::stream;
 use crate::events::Subscription;
 use crate::events::Stock;
@@ -164,7 +164,7 @@ impl Client {
   pub async fn subscribe<S>(
     &self,
     subscriptions: S,
-  ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
+  ) -> Result<impl Stream<Item = Result<Result<Event, JsonError>, WebSocketError>>, Error>
   where
     S: IntoIterator<Item = Subscription>,
   {
@@ -180,7 +180,7 @@ impl Client {
   async fn subscribe_<S>(
     &self,
     subscriptions: S,
-  ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
+  ) -> Result<impl Stream<Item = Result<Result<Event, JsonError>, WebSocketError>>, Error>
   where
     S: IntoIterator<Item = Subscription> + Debug,
   {

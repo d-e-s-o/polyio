@@ -7,7 +7,6 @@ mod subscription;
 
 pub use stream::Aggregate;
 pub use stream::Event;
-pub use stream::Events;
 pub use stream::Quote;
 pub use stream::stream;
 pub use stream::Trade;

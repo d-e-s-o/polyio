@@ -25,7 +25,6 @@ pub use client::Client;
 pub use error::Error;
 pub use events::Aggregate;
 pub use events::Event;
-pub use events::Events;
 pub use events::Quote;
 pub use events::Stock;
 pub use events::Subscription;

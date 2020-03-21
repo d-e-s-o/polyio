@@ -248,49 +248,34 @@ impl Event {
 }
 
 
-/// A type representing a number of events that occurred at the same
-/// time.
-pub type Events = Vec<Event>;
-
-
 /// Process the given messages, converting them into events and checking
 /// for disconnects. On disconnect (and only then) a `WebSocketError` is
 /// returned.
-fn process_messages(messages: Messages) -> Option<Result<Events, WebSocketError>> {
-  let mut events = Vec::with_capacity(messages.len());
-  for message in messages {
-    let event = match message {
-      Message::Status(status) => {
-        if status.code == Code::Disconnected {
-          let err = format!("Polygon disconnected client: {}", status.message);
-          return Some(Err(WebSocketError::Protocol(err.into())))
-        } else {
-          continue
-        }
-      },
-      Message::SecondAggregate(aggregate) => Event::SecondAggregate(aggregate),
-      Message::MinuteAggregate(aggregate) => Event::MinuteAggregate(aggregate),
-      Message::Trade(trade) => Event::Trade(trade),
-      Message::Quote(quote) => Event::Quote(quote),
-    };
+fn process_message(message: Message) -> Option<Result<Event, WebSocketError>> {
+  let event = match message {
+    Message::Status(status) => {
+      if status.code == Code::Disconnected {
+        let err = format!("Polygon disconnected client: {}", status.message);
+        return Some(Err(WebSocketError::Protocol(err.into())))
+      } else {
+        return None
+      }
+    },
+    Message::SecondAggregate(aggregate) => Event::SecondAggregate(aggregate),
+    Message::MinuteAggregate(aggregate) => Event::MinuteAggregate(aggregate),
+    Message::Trade(trade) => Event::Trade(trade),
+    Message::Quote(quote) => Event::Quote(quote),
+  };
 
-    events.push(event)
-  }
-
-  // If we have events left after filtering out all status
-  // messages then emit those.
-  if events.len() > 0 {
-    Some(Ok(events))
-  } else {
-    None
-  }
+  Some(Ok(event))
 }
+
 
 /// Subscribe to and stream events from the Polygon service.
 pub async fn stream<S>(
   api_info: ApiInfo,
   subscriptions: S,
-) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
+) -> Result<impl Stream<Item = Result<Result<Event, JsonError>, WebSocketError>>, Error>
 where
   S: IntoIterator<Item = Subscription>,
 {
@@ -311,17 +296,22 @@ where
 
   let stream = do_stream::<_, Messages>(stream).await;
   let stream = Box::pin(stream);
-  let stream = unfold((false, stream), |(mut stop, mut stream)| async move {
-    if stop {
-      None
-    } else {
-      let result = loop {
-        let next_msg = StreamExt::next(&mut stream).await;
-
-        if let Some(result) = next_msg {
-          match result {
-            Ok(result) => match result {
-              Ok(messages) => match process_messages(messages) {
+  let stream = unfold(
+    (false, (stream, Vec::new())),
+    |(mut stop, (mut stream, mut messages))| async move {
+      if stop {
+        None
+      } else {
+        let result = loop {
+          // Note that by popping from the back we reorder messages.
+          // Practically there can't really exist an ordering guarantee
+          // (well, perhaps WebSocket guarantees ordering [similar to
+          // TCP], but clients should not expect events to come in
+          // ordered from Polygon), so this should be fine.
+          match messages.pop() {
+            Some(message) => {
+              let result = process_message(message);
+              match result {
                 Some(result) => {
                   if result.is_err() {
                     stop = true;
@@ -329,19 +319,33 @@ where
                   break result.map(Ok)
                 },
                 None => continue,
-              },
-              Err(err) => break Ok(Err(err)),
+              }
             },
-            Err(err) => break Err(err),
-          }
-        } else {
-          return None
-        }
-      };
+            None => {
+              let next_msg = StreamExt::next(&mut stream).await;
 
-      Some((result, (stop, stream)))
-    }
-  });
+              if let Some(result) = next_msg {
+                match result {
+                  Ok(result) => match result {
+                    Ok(new) => {
+                      messages = new;
+                      continue
+                    },
+                    Err(err) => break Ok(Err(err)),
+                  },
+                  Err(err) => break Err(err),
+                }
+              } else {
+                return None
+              }
+            },
+          };
+        };
+
+        Some((result, (stop, (stream, messages))))
+      }
+    },
+  );
 
   Ok(stream)
 }
@@ -402,7 +406,7 @@ mod tests {
   async fn mock_stream<F, R, S>(
     f: F,
     subscriptions: S,
-  ) -> Result<impl Stream<Item = Result<Result<Events, JsonError>, WebSocketError>>, Error>
+  ) -> Result<impl Stream<Item = Result<Result<Event, JsonError>, WebSocketError>>, Error>
   where
     F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
     R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
@@ -614,19 +618,19 @@ mod tests {
     let mut stream = Box::pin(mock_stream(test, subscriptions).await.unwrap());
 
     let trade = stream.next().await.unwrap().unwrap().unwrap();
-    assert_eq!(trade.len(), 1);
-    assert_eq!(trade[0].to_trade().unwrap().symbol, "MSFT");
+    assert_eq!(trade.to_trade().unwrap().symbol, "MSFT");
 
     let quote = stream.next().await.unwrap().unwrap().unwrap();
-    assert_eq!(quote.len(), 2);
-
-    let quote0 = quote[0].to_quote().unwrap();
+    let quote0 = quote.to_quote().unwrap();
     assert_eq!(quote0.symbol, "UFO");
-    assert_eq!(quote0.ask_quantity, 3);
+    assert_eq!(quote0.ask_quantity, 11);
 
-    let quote1 = quote[1].to_quote().unwrap();
+    let quote = stream.next().await.unwrap().unwrap().unwrap();
+    let quote1 = quote.to_quote().unwrap();
     assert_eq!(quote1.symbol, "UFO");
-    assert_eq!(quote1.ask_quantity, 11);
+    assert_eq!(quote1.ask_quantity, 3);
+
+    assert!(stream.next().await.is_none());
   }
 
   #[test(tokio::test)]
