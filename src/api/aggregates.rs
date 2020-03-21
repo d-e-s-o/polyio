@@ -124,7 +124,7 @@ pub struct Aggregate {
   pub low_price: Num,
 }
 
-type GetResponse = Response<Option<Vec<Aggregate>>>;
+type GetResponse = Response<Vec<Aggregate>>;
 
 Endpoint! {
   /// The representation of a GET request to the
@@ -216,7 +216,6 @@ mod tests {
     let mut aggregates = from_json::<GetResponse>(&response)
       .unwrap()
       .into_result()
-      .unwrap()
       .unwrap();
 
     assert_eq!(aggregates.len(), 1);
@@ -243,7 +242,7 @@ mod tests {
       .into_result()
       .unwrap();
 
-    assert_eq!(result, None);
+    assert_eq!(result, Vec::new());
   }
 
   #[test(tokio::test)]
@@ -262,7 +261,6 @@ mod tests {
       .await
       .unwrap()
       .into_result()
-      .unwrap()
       .unwrap();
 
     // The number of trading days was inferred to be 19. There was
@@ -295,7 +293,6 @@ mod tests {
       .await
       .unwrap()
       .into_result()
-      .unwrap()
       .unwrap();
 
     assert_eq!(aggregates.len(), 383);
