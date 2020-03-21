@@ -1,6 +1,8 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![type_length_limit = "536870912"]
+
 #[macro_use]
 extern crate http_endpoint;
 

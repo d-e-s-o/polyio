@@ -3,9 +3,9 @@
 
 use std::time::SystemTime;
 
-use futures::future::ok;
+use futures::stream::unfold;
 use futures::Stream;
-use futures::TryStreamExt;
+use futures::StreamExt;
 
 use num_decimal::Num;
 
@@ -143,6 +143,8 @@ pub struct Aggregate {
 pub(crate) enum Code {
   #[serde(rename = "connected")]
   Connected,
+  #[serde(rename = "disconnected")]
+  Disconnected,
   #[serde(rename = "auth_success")]
   AuthSuccess,
   #[serde(rename = "auth_failed")]
@@ -252,6 +254,39 @@ impl Event {
 pub type Events = Vec<Event>;
 
 
+/// Process the given messages, converting them into events and checking
+/// for disconnects. On disconnect (and only then) a `WebSocketError` is
+/// returned.
+fn process_messages(messages: Messages) -> Option<Result<Events, WebSocketError>> {
+  let mut events = Vec::with_capacity(messages.0.len());
+  for message in messages.0 {
+    let event = match message {
+      Message::Status(status) => {
+        if status.code == Code::Disconnected {
+          let err = format!("Polygon disconnected client: {}", status.message);
+          return Some(Err(WebSocketError::Protocol(err.into())))
+        } else {
+          continue
+        }
+      },
+      Message::SecondAggregate(aggregate) => Event::SecondAggregate(aggregate),
+      Message::MinuteAggregate(aggregate) => Event::MinuteAggregate(aggregate),
+      Message::Trade(trade) => Event::Trade(trade),
+      Message::Quote(quote) => Event::Quote(quote),
+    };
+
+    events.push(event)
+  }
+
+  // If we have events left after filtering out all status
+  // messages then emit those.
+  if events.len() > 0 {
+    Some(Ok(events))
+  } else {
+    None
+  }
+}
+
 /// Subscribe to and stream events from the Polygon service.
 pub async fn stream<S>(
   api_info: ApiInfo,
@@ -275,36 +310,39 @@ where
   handshake(&mut stream, api_key, subscriptions).await?;
   debug!("subscription successful");
 
-  let stream = do_stream::<_, Messages>(stream)
-    .await
-    .try_filter_map(|result| {
-      let result = match result {
-        Ok(messages) => {
-          let mut events = Vec::with_capacity(messages.0.len());
-          for message in messages.0 {
-            let event = match message {
-              Message::Status(..) => continue,
-              Message::SecondAggregate(aggregate) => Event::SecondAggregate(aggregate),
-              Message::MinuteAggregate(aggregate) => Event::MinuteAggregate(aggregate),
-              Message::Trade(trade) => Event::Trade(trade),
-              Message::Quote(quote) => Event::Quote(quote),
-            };
+  let stream = do_stream::<_, Messages>(stream).await;
+  let stream = Box::pin(stream);
+  let stream = unfold((false, stream), |(mut stop, mut stream)| async move {
+    if stop {
+      None
+    } else {
+      let result = loop {
+        let next_msg = StreamExt::next(&mut stream).await;
 
-            events.push(event)
+        if let Some(result) = next_msg {
+          match result {
+            Ok(result) => match result {
+              Ok(messages) => match process_messages(messages) {
+                Some(result) => {
+                  if result.is_err() {
+                    stop = true;
+                  }
+                  break result.map(Ok)
+                },
+                None => continue,
+              },
+              Err(err) => break Ok(Err(err)),
+            },
+            Err(err) => break Err(err),
           }
-
-          // If we have events left after filtering out all status
-          // messages then emit those.
-          if events.len() > 0 {
-            Some(Ok(events))
-          } else {
-            None
-          }
-        },
-        Err(err) => Some(Err(err)),
+        } else {
+          return None
+        }
       };
-      ok(result)
-    });
+
+      Some((result, (stop, stream)))
+    }
+  });
 
   Ok(stream)
 }
@@ -340,6 +378,8 @@ mod tests {
   const API_KEY: &str = "USER12345678";
   const CONNECTED_MSG: &str =
     { r#"[{"ev":"status","status":"connected","message":"Connected Successfully"}]"# };
+  const DISCONNECTED_MSG: &str =
+    { r#"[{"ev":"status","status":"disconnected","message":"Reason: Max connections reached"}]"# };
   const AUTH_REQ: &str = r#"{"action":"auth","params":"USER12345678"}"#;
   const AUTH_RESP: &str = r#"[{"ev":"status","status":"auth_success","message":"authenticated"}]"#;
   const SUB_REQ: &str = r#"{"action":"subscribe","params":"T.MSFT,Q.*"}"#;
@@ -636,5 +676,57 @@ mod tests {
       .try_for_each(|_| ready(Ok(())))
       .await
       .unwrap();
+  }
+
+  #[test(tokio::test)]
+  async fn disconnect() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      stream
+        .send(WebSocketMessage::Text(CONNECTED_MSG.to_string()))
+        .await?;
+
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        WebSocketMessage::Text(AUTH_REQ.to_string()),
+      );
+      stream
+        .send(WebSocketMessage::Text(AUTH_RESP.to_string()))
+        .await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        WebSocketMessage::Text(SUB_REQ.to_string()),
+      );
+      stream
+        .send(WebSocketMessage::Text(SUB_RESP.to_string()))
+        .await?;
+
+      stream
+        .send(WebSocketMessage::Text(MSFT_TRADE_MSG.to_string()))
+        .await?;
+      stream
+        .send(WebSocketMessage::Text(DISCONNECTED_MSG.to_string()))
+        .await?;
+
+      // This message should never be seen.
+      stream
+        .send(WebSocketMessage::Text(UFO_QUOTE_MSG.to_string()))
+        .await?;
+      stream.send(WebSocketMessage::Close(None)).await?;
+      Ok(())
+    }
+
+    let subscriptions = vec![
+      Subscription::Trades(Stock::Symbol("MSFT".into())),
+      Subscription::Quotes(Stock::All),
+    ];
+
+    let mut stream = Box::pin(mock_stream(test, subscriptions).await.unwrap());
+
+    assert!(stream.next().await.unwrap().is_ok());
+    assert!(stream.next().await.unwrap().is_err());
+    assert!(stream.next().await.is_none());
   }
 }

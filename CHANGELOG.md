@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added support for properly handling "disconnect" messages
 - Removed `Aggregate::accumulated_volume` and `Aggregate::average_price`
   members
 - Decreased tracing verbosity by one level
