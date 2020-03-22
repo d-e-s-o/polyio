@@ -168,15 +168,12 @@ impl Client {
   where
     S: IntoIterator<Item = Subscription>,
   {
-    // We remove duplicates and subsumed subscriptions but also create
-    // an iterator of a well known type to pass to `subscribe_`, which
-    // will include its Debug format in a span.
     let subscriptions = normalize(subscriptions);
     self.subscribe_(subscriptions).await
   }
 
   /// Implementation of `subscribe` that creates a proper span.
-  #[instrument(level = "debug", skip(self))]
+  #[instrument(level = "debug", skip(self, subscriptions))]
   async fn subscribe_<S>(
     &self,
     subscriptions: S,
