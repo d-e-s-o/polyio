@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `websocket-util` dependency to `0.4`
+
+
 0.4.0
 -----
 - Added support for properly handling "disconnect" messages

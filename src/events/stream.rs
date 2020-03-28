@@ -4,6 +4,7 @@
 use std::time::SystemTime;
 
 use futures::stream::unfold;
+use futures::FutureExt;
 use futures::Stream;
 use futures::StreamExt;
 
@@ -11,6 +12,7 @@ use num_decimal::Num;
 
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::from_slice as from_json;
 use serde_json::Error as JsonError;
 
 use time_util::system_time_from_millis_in_tz;
@@ -350,7 +352,9 @@ where
   handshake(&mut stream, api_key, subscriptions).await?;
   debug!("subscription successful");
 
-  let stream = do_stream::<_, Messages>(stream).await;
+  let stream = do_stream(stream)
+    .map(|stream| stream.map(|result| result.map(|data| from_json::<Messages>(&data))))
+    .await;
   let stream = Box::pin(stream);
   let stream = unfold(
     (false, (stream, Vec::new())),
