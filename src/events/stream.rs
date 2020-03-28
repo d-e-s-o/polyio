@@ -271,6 +271,62 @@ fn process_message(message: Message) -> Option<Result<Event, WebSocketError>> {
 }
 
 
+async fn handle_msg<S>(
+  stop: &mut bool,
+  stream: &mut S,
+  messages: &mut Vec<Message>,
+) -> Option<Result<Result<Event, JsonError>, WebSocketError>>
+where
+  S: Stream<Item = Result<Result<Vec<Message>, JsonError>, WebSocketError>> + Unpin,
+{
+  if *stop {
+    None
+  } else {
+    let result = loop {
+      // Note that by popping from the back we reorder messages.
+      // Practically there can't really exist an ordering guarantee
+      // (well, perhaps WebSocket guarantees ordering [similar to
+      // TCP], but clients should not expect events to come in
+      // ordered from Polygon), so this should be fine.
+      match messages.pop() {
+        Some(message) => {
+          let result = process_message(message);
+          match result {
+            Some(result) => {
+              if result.is_err() {
+                *stop = true;
+              }
+              break result.map(Ok)
+            },
+            None => continue,
+          }
+        },
+        None => {
+          let next_msg = StreamExt::next(stream).await;
+
+          if let Some(result) = next_msg {
+            match result {
+              Ok(result) => match result {
+                Ok(new) => {
+                  *messages = new;
+                  continue
+                },
+                Err(err) => break Ok(Err(err)),
+              },
+              Err(err) => break Err(err),
+            }
+          } else {
+            return None
+          }
+        },
+      };
+    };
+
+    Some(result)
+  }
+}
+
+
 /// Subscribe to and stream events from the Polygon service.
 pub async fn stream<S>(
   api_info: ApiInfo,
@@ -299,51 +355,8 @@ where
   let stream = unfold(
     (false, (stream, Vec::new())),
     |(mut stop, (mut stream, mut messages))| async move {
-      if stop {
-        None
-      } else {
-        let result = loop {
-          // Note that by popping from the back we reorder messages.
-          // Practically there can't really exist an ordering guarantee
-          // (well, perhaps WebSocket guarantees ordering [similar to
-          // TCP], but clients should not expect events to come in
-          // ordered from Polygon), so this should be fine.
-          match messages.pop() {
-            Some(message) => {
-              let result = process_message(message);
-              match result {
-                Some(result) => {
-                  if result.is_err() {
-                    stop = true;
-                  }
-                  break result.map(Ok)
-                },
-                None => continue,
-              }
-            },
-            None => {
-              let next_msg = StreamExt::next(&mut stream).await;
-
-              if let Some(result) = next_msg {
-                match result {
-                  Ok(result) => match result {
-                    Ok(new) => {
-                      messages = new;
-                      continue
-                    },
-                    Err(err) => break Ok(Err(err)),
-                  },
-                  Err(err) => break Err(err),
-                }
-              } else {
-                return None
-              }
-            },
-          };
-        };
-
-        Some((result, (stop, (stream, messages))))
-      }
+      let result = handle_msg(&mut stop, &mut stream, &mut messages).await;
+      result.map(|result| (result, (stop, (stream, messages))))
     },
   );
 
