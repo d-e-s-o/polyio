@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Introduced new public `events` module
 - Removed `Hyper` variant from `Error` type
 - Bumped `http-endpoint` dependency to `0.2`
   - Introduced new `RequestError` type

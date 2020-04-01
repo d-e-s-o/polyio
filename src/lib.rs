@@ -55,11 +55,13 @@ mod endpoint;
 /// A module comprising the functionality backing interactions with the
 /// API.
 pub mod api;
+/// A module comprising functionality for interacting with Polygon's
+/// market data streaming service.
+pub mod events;
 
 mod api_info;
 mod client;
 mod error;
-mod events;
 
 use std::borrow::Cow;
 
@@ -67,11 +69,5 @@ pub use api_info::ApiInfo;
 pub use client::Client;
 pub use error::Error;
 pub use error::RequestError;
-pub use events::Aggregate;
-pub use events::Event;
-pub use events::Quote;
-pub use events::Stock;
-pub use events::Subscription;
-pub use events::Trade;
 
 type Str = Cow<'static, str>;
