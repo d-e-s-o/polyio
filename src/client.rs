@@ -7,14 +7,14 @@ use std::str::from_utf8;
 
 use futures::Stream;
 
+use http::request::Builder as HttpRequestBuilder;
+use http::Request;
 use http_endpoint::Endpoint;
 
 use hyper::Body;
 use hyper::body::to_bytes;
 use hyper::Client as HttpClient;
 use hyper::client::HttpConnector;
-use hyper::http::request::Builder as HttpRequestBuilder;
-use hyper::Request;
 use hyper_tls::HttpsConnector;
 
 use tracing::debug;
