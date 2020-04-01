@@ -66,8 +66,6 @@ pub enum Error {
   /// We encountered an HTTP that either represents a failure or is not
   /// supported.
   HttpStatus(HttpStatusCode, Vec<u8>),
-  /// An error reported by the `hyper` crate.
-  Hyper(HyperError),
   /// A JSON conversion error.
   Json(JsonError),
   /// An error directly originating in this module.
@@ -90,7 +88,6 @@ impl Display for Error {
         }
         Ok(())
       },
-      Error::Hyper(err) => write!(fmt, "{}", err),
       Error::Json(err) => write!(fmt, "{}", err),
       Error::Str(err) => fmt.write_str(err),
       Error::Url(err) => write!(fmt, "{}", err),
@@ -104,7 +101,6 @@ impl StdError for Error {
     match self {
       Error::Http(err) => err.source(),
       Error::HttpStatus(..) => None,
-      Error::Hyper(err) => err.source(),
       Error::Json(err) => err.source(),
       Error::Str(..) => None,
       Error::Url(err) => err.source(),
