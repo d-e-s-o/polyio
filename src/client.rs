@@ -30,6 +30,7 @@ use tungstenite::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
+use crate::error::RequestError;
 use crate::events::Event;
 use crate::events::stream;
 use crate::events::Subscription;
@@ -118,18 +119,18 @@ impl Client {
     let request = HttpRequestBuilder::new()
       .method(E::method())
       .uri(url.as_str())
-      .body(E::body(input)?)?;
+      .body(Body::from(E::body(input)?))?;
 
     Ok(request)
   }
 
   /// Create and issue a request and decode the response.
   #[instrument(level = "debug", skip(self, input))]
-  pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, E::Error>
+  pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, RequestError<E::Error>>
   where
     E: Endpoint,
   {
-    let req = self.request::<E>(&input)?;
+    let req = self.request::<E>(&input).map_err(RequestError::Endpoint)?;
     let span = span!(
       Level::DEBUG,
       "request",
@@ -154,7 +155,7 @@ impl Client {
         Err(b) => trace!(body = display(&b)),
       }
 
-      E::evaluate(status, body)
+      E::evaluate(status, body).map_err(RequestError::Endpoint)
     }
     .instrument(span)
     .await

@@ -126,6 +126,7 @@ mod tests {
   use test_env_log::test;
 
   use crate::Client;
+  use crate::RequestError;
 
 
   #[test(tokio::test)]
@@ -142,7 +143,7 @@ mod tests {
         assert_eq!(aapl.locale, "US");
         assert_eq!(aapl.currency, "USD");
       },
-      Err(GetError::NotFound(..)) => (),
+      Err(RequestError::Endpoint(GetError::NotFound(..))) => (),
       Err(..) => panic!("unexpected error: {:?}", result),
     }
   }

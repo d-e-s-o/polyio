@@ -5,6 +5,7 @@ use std::error::Error as StdError;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
+use std::str::from_utf8;
 
 use http_endpoint::Error as EndpointError;
 use hyper::Error as HyperError;
@@ -17,6 +18,46 @@ use url::ParseError;
 use crate::Str;
 
 
+/// An error encountered while issuing a request.
+#[derive(Debug)]
+pub enum RequestError<E> {
+  /// An endpoint reported error.
+  Endpoint(E),
+  /// An error reported by the `hyper` crate.
+  Hyper(HyperError),
+}
+
+impl<E> Display for RequestError<E>
+where
+  E: Display,
+{
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    match self {
+      Self::Endpoint(err) => write!(fmt, "{}", err),
+      Self::Hyper(err) => write!(fmt, "{}", err),
+    }
+  }
+}
+
+impl<E> StdError for RequestError<E>
+where
+  E: StdError,
+{
+  fn source(&self) -> Option<&(dyn StdError + 'static)> {
+    match self {
+      Self::Endpoint(..) => None,
+      Self::Hyper(err) => err.source(),
+    }
+  }
+}
+
+impl<E> From<HyperError> for RequestError<E> {
+  fn from(e: HyperError) -> Self {
+    Self::Hyper(e)
+  }
+}
+
+
 /// An error type used by this crate.
 #[derive(Debug)]
 pub enum Error {
@@ -24,7 +65,7 @@ pub enum Error {
   Http(HttpError),
   /// We encountered an HTTP that either represents a failure or is not
   /// supported.
-  HttpStatus(HttpStatusCode),
+  HttpStatus(HttpStatusCode, Vec<u8>),
   /// An error reported by the `hyper` crate.
   Hyper(HyperError),
   /// A JSON conversion error.
@@ -41,7 +82,14 @@ impl Display for Error {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
       Error::Http(err) => write!(fmt, "{}", err),
-      Error::HttpStatus(status) => write!(fmt, "Received HTTP status: {}", status),
+      Error::HttpStatus(status, data) => {
+        write!(fmt, "Received HTTP status {}: ", status)?;
+        match from_utf8(&data) {
+          Ok(s) => fmt.write_str(s)?,
+          Err(b) => write!(fmt, "{:?}", b)?,
+        }
+        Ok(())
+      },
       Error::Hyper(err) => write!(fmt, "{}", err),
       Error::Json(err) => write!(fmt, "{}", err),
       Error::Str(err) => fmt.write_str(err),
@@ -69,8 +117,7 @@ impl From<EndpointError> for Error {
   fn from(src: EndpointError) -> Self {
     match src {
       EndpointError::Http(err) => Error::Http(err),
-      EndpointError::HttpStatus(status) => Error::HttpStatus(status),
-      EndpointError::Hyper(err) => Error::Hyper(err),
+      EndpointError::HttpStatus(status, data) => Error::HttpStatus(status, data),
       EndpointError::Json(err) => Error::Json(err),
     }
   }

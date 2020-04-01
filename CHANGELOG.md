@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Bumped `http-endpoint` dependency to `0.2`
+  - Introduced new `RequestError` type
 - Bumped `websocket-util` dependency to `0.4`
 
 

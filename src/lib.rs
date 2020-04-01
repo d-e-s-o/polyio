@@ -23,6 +23,7 @@ use std::borrow::Cow;
 pub use api_info::ApiInfo;
 pub use client::Client;
 pub use error::Error;
+pub use error::RequestError;
 pub use events::Aggregate;
 pub use events::Event;
 pub use events::Quote;
