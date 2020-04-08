@@ -11,7 +11,7 @@ use crate::Str;
 
 
 /// A GET request to be made to the /v2/reference/tickers endpoint.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TickerReq {
   /// The market a ticker should be traded on.
   pub market: Option<ticker::Market>,

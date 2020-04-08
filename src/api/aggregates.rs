@@ -40,7 +40,7 @@ fn format_date(time: &SystemTime) -> Result<String, SystemTimeError> {
 
 
 /// An enumeration of the various supported time span values.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TimeSpan {
   /// A minutely aggregate.
   Minute,
