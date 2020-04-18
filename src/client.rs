@@ -28,6 +28,8 @@ use serde_json::Error as JsonError;
 
 use tungstenite::tungstenite::Error as WebSocketError;
 
+use url::Url;
+
 use crate::api_info::ApiInfo;
 use crate::error::Error;
 use crate::error::RequestError;
@@ -104,8 +106,8 @@ impl Client {
     Ok(Self::new(api_info))
   }
 
-  /// Create a `Request` to the endpoint.
-  fn request<E>(&self, input: &E::Input) -> Result<Request<Body>, E::Error>
+  /// Build the URL for a request to the provided endpoint.
+  fn url<E>(&self, input: &E::Input) -> Url
   where
     E: Endpoint,
   {
@@ -116,6 +118,16 @@ impl Client {
       .query_pairs_mut()
       .append_pair(API_KEY_PARAM, &self.api_info.api_key);
 
+    url
+  }
+
+  /// Create a `Request` to the endpoint.
+  #[cfg(not(feature = "wasm"))]
+  fn request<E>(&self, input: &E::Input) -> Result<Request<Body>, E::Error>
+  where
+    E: Endpoint,
+  {
+    let url = self.url::<E>(input);
     let request = HttpRequestBuilder::new()
       .method(E::method())
       .uri(url.as_str())
