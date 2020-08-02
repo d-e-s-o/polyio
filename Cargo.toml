@@ -20,25 +20,26 @@ A create for interacting with the Polygon API at polygon.io.
 """
 
 [dependencies]
-chrono = {version = "0.4", default-features = false}
-futures = {version = "0.3", default-features = false}
-http = {version = "0.2", default-features = false}
-http-endpoint = "0.2"
-hyper = {version = "0.13", default-features = false}
-hyper-tls = {version = "0.4", default-features = false}
-num-decimal = {version = "0.2", features = ["serde"]}
-serde = {version = "1.0", features = ["derive"]}
-serde_json = "1.0"
-time-util = {version = "0.2", features = ["chrono", "serde"]}
-tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
-tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
-tungstenite = {package = "async-tungstenite", version = "0.4", default-features = false, features = ["tokio-runtime", "tokio-tls"]}
-url = "2.0"
-websocket-util = "0.4"
+chrono = { version = "0.4.13", default-features = false }
+futures = { version = "0.3.5", default-features = false }
+http = { version = "0.2.1", default-features = false }
+http-endpoint = "0.2.0"
+hyper = { version = "0.13.6", default-features = false }
+hyper-tls = { version = "0.4.3", default-features = false }
+num-decimal = { version = "0.2.2", features = ["serde"] }
+serde = { version = "1.0.114", features = ["derive"] }
+serde_json = "1.0.56"
+time-util = { version = "0.2.0", features = ["chrono", "serde"] }
+tracing = { version = "0.1.15", default-features = false, features = ["attributes", "std"] }
+tracing-futures = { version = "0.2.4", default-features = false, features = ["std-future"] }
+tungstenite = {package = "async-tungstenite", version = "0.5", default-features = false, features = ["tokio-runtime", "tokio-tls"]}
+
+url = "2.1.1"
+websocket-util = "0.5.0"
 
 [dev-dependencies]
-maplit = {version = "1.0", default-features = false}
-test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
-tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
-tracing-subscriber = {version = "0.1.6", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
-websocket-util = {version = "0.4", features = ["test"]}
+maplit = { version = "1.0.2", default-features = false }
+test-env-log = { version = "0.2.2", default-features = false, features = ["trace"] }
+tokio = { version = "0.2.21", default-features = false, features = ["rt-core", "macros"] }
+tracing-subscriber = { version = "0.2.7", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"] }
+websocket-util = { version = "0.5.0", features = ["test"] }
