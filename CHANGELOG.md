@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Bumped `websocket-util` dependency to `0.5`
+- Bumped `async-tungstenite` dependency to `0.5`
+
+
 0.5.0
 -----
 - Introduced new public `events` module
