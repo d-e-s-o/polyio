@@ -141,7 +141,7 @@ mod tests {
 
       // Let's hope that AAPL sticks around for a while.
       if let Some(aapl) = tickers.iter().find(|ticker| ticker.ticker == "AAPL") {
-        assert_eq!(aapl.name, "Apple Inc");
+        assert_eq!(aapl.name, "Apple Inc. Common Stock");
         assert_eq!(aapl.market, ticker::Market::Stocks);
         assert_eq!(aapl.locale, "US");
         assert_eq!(aapl.currency, "USD");
