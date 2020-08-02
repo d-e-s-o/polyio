@@ -169,7 +169,7 @@ where
       .await
       .ok_or_else(|| Error::Str("websocket connection closed unexpectedly".into()))?;
     let msg = result?;
-    trace!(message = display(&msg));
+    trace!(message = %msg);
 
     count = match msg {
       WebSocketMsg::Text(text) => check_responses(text.as_bytes(), expected, count, operation)?,
