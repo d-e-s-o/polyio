@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::env::var_os;
@@ -34,6 +34,19 @@ pub struct ApiInfo {
 }
 
 impl ApiInfo {
+  /// Create an `ApiInfo` object using the given API key and assuming
+  /// default API and Stream endpoint URLs.
+  pub fn new<S>(api_key: S) -> Self
+  where
+    S: Into<String>,
+  {
+    Self {
+      api_url: Url::parse(DEFAULT_API_URL).unwrap(),
+      stream_url: Url::parse(DEFAULT_STREAM_URL).unwrap(),
+      api_key: api_key.into(),
+    }
+  }
+
   /// Create an `ApiInfo` object with information from the environment.
   ///
   /// This constructor retrieves API related information from the
@@ -86,5 +99,20 @@ impl ApiInfo {
       stream_url,
       api_key,
     })
+  }
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+
+  /// Verify that we can create an `ApiInfo` object.
+  #[test]
+  fn create_api_info() {
+    // We mainly verify that the default URLs can be parsed without an
+    // error.
+    let _ = ApiInfo::new("XXXXXXXXXXXXXXXXXXXX");
   }
 }

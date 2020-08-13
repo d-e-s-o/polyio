@@ -68,7 +68,7 @@ pub struct Ticker {
   /// The ticker's name.
   #[serde(rename = "name")]
   pub name: String,
-  /// The ticker's name.
+  /// The ticker's market.
   #[serde(rename = "market")]
   pub market: Market,
   /// The locale.

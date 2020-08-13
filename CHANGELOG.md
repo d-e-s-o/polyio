@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added `ApiInfo::new` constructor
 - Bumped `websocket-util` dependency to `0.5`
 - Bumped `async-tungstenite` dependency to `0.5`
 

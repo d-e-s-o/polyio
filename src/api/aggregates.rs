@@ -128,7 +128,7 @@ type GetResponse = Response<Vec<Aggregate>>;
 
 Endpoint! {
   /// The representation of a GET request to the
-  /// /v2/aggs/ticker/<symbol>/range/1/<span>/<start>/<end> endpoint.
+  /// /v2/aggs/ticker/<symbol>/range/<multiplier>/<span>/<start>/<end> endpoint.
   pub Get(AggregateReq),
   Ok => GetResponse, [
     /// The ticker information was retrieved successfully.
