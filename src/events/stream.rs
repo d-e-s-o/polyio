@@ -167,6 +167,7 @@ pub(crate) struct Status {
 /// nutshell, while we still accept actual event data, it is not parsed
 /// and simply ignored by the logic.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 #[serde(tag = "ev")]
 pub(crate) enum Message {
   #[serde(rename = "status")]
@@ -200,6 +201,7 @@ pub(crate) type Messages = Vec<Message>;
 
 /// An enum representing the type of event we received from Polygon.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(clippy::large_enum_variant)]
 #[serde(tag = "ev")]
 pub enum Event {
   /// A tick for a second aggregate for a stock.
@@ -324,6 +326,7 @@ where
 
 
 /// Subscribe to and stream events from the Polygon service.
+#[allow(clippy::cognitive_complexity)]
 pub async fn stream<S>(
   api_info: ApiInfo,
   subscriptions: S,
@@ -332,9 +335,9 @@ where
   S: IntoIterator<Item = Subscription>,
 {
   let ApiInfo {
-    api_url: _,
     stream_url: url,
     api_key,
+    ..
   } = api_info;
 
   debug!(message = "connecting", url = display(&url));
@@ -517,7 +520,7 @@ mod tests {
     assert_eq!(aggregate.volume, 2287);
     assert_eq!(
       aggregate.volume_weighted_average_price,
-      Num::new(2946301, 10000),
+      Num::new(2_946_301, 10000),
     );
     assert_eq!(aggregate.open_price, Num::new(29379, 100));
     assert_eq!(aggregate.close_price, Num::new(29368, 100));

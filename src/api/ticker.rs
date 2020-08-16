@@ -47,8 +47,8 @@ pub enum Type {
 }
 
 impl Type {
-  pub(crate) fn as_str(&self) -> Option<&'static str> {
-    match *self {
+  pub(crate) fn as_str(self) -> Option<&'static str> {
+    match self {
       Type::CommonStock => Some("CS"),
       Type::Other => None,
     }

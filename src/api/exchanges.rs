@@ -110,7 +110,7 @@ mod tests {
     let client = Client::from_env().unwrap();
     let exchgs = client.issue::<Get>(()).await.unwrap();
 
-    assert!(exchgs.len() > 0);
+    assert!(!exchgs.is_empty());
 
     // We are in trouble if NYE cannot be found.
     let nye = exchgs

@@ -57,7 +57,7 @@ where
   trace!(request = display(&json));
 
   stream
-    .send(WebSocketMsg::text(json).into())
+    .send(WebSocketMsg::text(json))
     .map_err(|e| {
       error!("failed to send stream auth request: {}", e);
       e
@@ -102,7 +102,7 @@ where
   trace!(request = display(&json));
 
   stream
-    .send(WebSocketMsg::text(json).into())
+    .send(WebSocketMsg::text(json))
     .map_err(|e| {
       error!("failed to send stream subscribe request: {}", e);
       e
@@ -118,6 +118,7 @@ where
 /// Note that because Polygon intermixes status messages with actual
 /// event data, we need to inspect messages received for whether they
 /// are actual status indications and only evaluate those.
+#[allow(clippy::absurd_extreme_comparisons, clippy::single_match)]
 fn check_responses(
   msg: &[u8],
   expected: Code,

@@ -137,7 +137,7 @@ mod tests {
       assert_eq!(response.page, page);
 
       let tickers = response.into_result().unwrap();
-      assert!(tickers.len() > 0);
+      assert!(!tickers.is_empty());
 
       // Let's hope that AAPL sticks around for a while.
       if let Some(aapl) = tickers.iter().find(|ticker| ticker.ticker == "AAPL") {

@@ -154,6 +154,8 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use std::f64::EPSILON;
+
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
@@ -181,7 +183,10 @@ mod tests {
       aggregate.timestamp,
       parse_system_time_from_str("2019-02-04T16:00:00Z").unwrap(),
     );
-    assert_eq!(aggregate.volume, 31315282f64);
+    assert!(
+      (aggregate.volume - 31_315_282f64).abs() <= EPSILON,
+      aggregate.volume
+    );
     assert_eq!(aggregate.open_price, Num::new(10287, 100));
     assert_eq!(aggregate.close_price, Num::new(10374, 100));
     assert_eq!(aggregate.high_price, Num::new(10382, 100));
@@ -221,7 +226,10 @@ mod tests {
     assert_eq!(aggregates.len(), 1);
 
     let aggregate = aggregates.remove(0);
-    assert_eq!(aggregate.volume, 31315282f64);
+    assert!(
+      (aggregate.volume - 31_315_282f64).abs() <= EPSILON,
+      aggregate.volume
+    );
   }
 
   #[test(tokio::test)]

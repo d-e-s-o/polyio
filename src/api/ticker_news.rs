@@ -91,9 +91,10 @@ mod tests {
       per_page: 5,
       page: 1,
     };
-    let news = client.issue::<Get>(req).await.unwrap();
 
-    assert!(news.len() > 0, news);
+    let news = client.issue::<Get>(req).await.unwrap();
+    assert!(!news.is_empty(), news);
+
     for item in news {
       assert!(item.symbols.contains(&"AAPL".to_string()), item);
     }

@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![type_length_limit = "536870912"]
+#![allow(
+  clippy::let_and_return,
+  clippy::let_unit_value,
+)]
 #![warn(
   bad_style,
   dead_code,

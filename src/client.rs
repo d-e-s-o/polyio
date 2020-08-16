@@ -138,6 +138,7 @@ impl Client {
 
   /// Create and issue a request and decode the response.
   #[instrument(level = "debug", skip(self, input))]
+  #[allow(clippy::cognitive_complexity)]
   pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, RequestError<E::Error>>
   where
     E: Endpoint,
