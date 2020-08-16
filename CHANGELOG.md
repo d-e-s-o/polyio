@@ -1,6 +1,8 @@
 Unreleased
 ----------
 - Added `ApiInfo::new` constructor
+- Removed `events::Trade::conditions` and `events::Quote::condition`
+  members
 - Bumped `http-endpoint` dependency to `0.3`
 - Bumped `websocket-util` dependency to `0.5`
 - Bumped `async-tungstenite` dependency to `0.5`

@@ -48,9 +48,6 @@ pub struct Trade {
   /// The number of shares traded.
   #[serde(rename = "s")]
   pub quantity: u64,
-  /// The trade conditions.
-  #[serde(rename = "c")]
-  pub conditions: Vec<u64>,
   /// The trade's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
@@ -85,9 +82,6 @@ pub struct Quote {
   /// The bid quantity
   #[serde(rename = "as")]
   pub ask_quantity: u64,
-  /// The quote condition.
-  #[serde(rename = "c")]
-  pub condition: u64,
   /// The quote's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
@@ -457,7 +451,6 @@ mod tests {
     assert_eq!(trade.exchange, 19);
     assert_eq!(trade.price, Num::new(29367, 100));
     assert_eq!(trade.quantity, 100);
-    assert_eq!(trade.conditions, Vec::<u64>::new());
     assert_eq!(
       trade.timestamp,
       parse_system_time_from_str("2020-03-06T15:43:22.638Z").unwrap()
@@ -491,7 +484,6 @@ mod tests {
     assert_eq!(quote.ask_exchange, 11);
     assert_eq!(quote.ask_price, Num::new(29433, 100));
     assert_eq!(quote.ask_quantity, 2);
-    assert_eq!(quote.condition, 0);
     assert_eq!(
       quote.timestamp,
       parse_system_time_from_str("2020-03-06T15:36:44.684Z").unwrap()
