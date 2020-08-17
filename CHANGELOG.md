@@ -3,6 +3,8 @@ Unreleased
 - Added `ApiInfo::new` constructor
 - Removed `events::Trade::conditions` and `events::Quote::condition`
   members
+- Enabled CI pipeline comprising building and linting of the project
+  - Added badge indicating pipeline status
 - Bumped `http-endpoint` dependency to `0.3`
 - Bumped `websocket-util` dependency to `0.5`
 - Bumped `async-tungstenite` dependency to `0.5`
