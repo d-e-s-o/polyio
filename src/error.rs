@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::error::Error as StdError;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
@@ -13,6 +13,7 @@ use http_endpoint::Error as EndpointError;
 
 use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
+use thiserror::Error as ThisError;
 use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
 
@@ -20,120 +21,112 @@ use crate::Str;
 
 
 /// An error encountered while issuing a request.
-#[derive(Debug)]
-pub enum RequestError<E> {
+#[derive(Debug, ThisError)]
+pub enum RequestError<E>
+where
+  E: Debug + Display,
+{
   /// An endpoint reported error.
+  #[error("the endpoint reported an error")]
   Endpoint(E),
   /// An error reported by the `hyper` crate.
-  Hyper(HyperError),
+  #[error("the hyper crate reported an error")]
+  Hyper(
+    #[from]
+    #[source]
+    HyperError,
+  ),
 }
 
-impl<E> Display for RequestError<E>
-where
-  E: Display,
-{
+
+#[derive(Clone, Debug, ThisError)]
+pub struct HttpBody(Vec<u8>);
+
+impl Display for HttpBody {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
-    match self {
-      Self::Endpoint(err) => write!(fmt, "{}", err),
-      Self::Hyper(err) => write!(fmt, "{}", err),
+    match from_utf8(&self.0) {
+      Ok(s) => fmt.write_str(s)?,
+      Err(b) => write!(fmt, "{:?}", b)?,
     }
-  }
-}
-
-impl<E> StdError for RequestError<E>
-where
-  E: StdError,
-{
-  fn source(&self) -> Option<&(dyn StdError + 'static)> {
-    match self {
-      Self::Endpoint(..) => None,
-      Self::Hyper(err) => err.source(),
-    }
-  }
-}
-
-impl<E> From<HyperError> for RequestError<E> {
-  fn from(e: HyperError) -> Self {
-    Self::Hyper(e)
+    Ok(())
   }
 }
 
 
 /// An error type used by this crate.
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum Error {
   /// An HTTP related error.
-  Http(HttpError),
+  #[error("encountered an HTTP related error")]
+  Http(#[source] HttpError),
   /// We encountered an HTTP that either represents a failure or is not
   /// supported.
-  HttpStatus(HttpStatusCode, Vec<u8>),
+  #[error("encountered an unexpected HTTP status: {0}")]
+  HttpStatus(HttpStatusCode, #[source] HttpBody),
   /// A JSON conversion error.
-  Json(JsonError),
+  #[error("a JSON conversion failed")]
+  Json(
+    #[from]
+    #[source]
+    JsonError,
+  ),
   /// An error directly originating in this module.
+  #[error("{0}")]
   Str(Str),
   /// An URL parsing error.
-  Url(ParseError),
+  #[error("failed to parse the URL")]
+  Url(
+    #[from]
+    #[source]
+    ParseError,
+  ),
   /// A websocket error.
-  WebSocket(WebSocketError),
-}
-
-impl Display for Error {
-  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
-    match self {
-      Error::Http(err) => write!(fmt, "{}", err),
-      Error::HttpStatus(status, data) => {
-        write!(fmt, "Received HTTP status {}: ", status)?;
-        match from_utf8(&data) {
-          Ok(s) => fmt.write_str(s)?,
-          Err(b) => write!(fmt, "{:?}", b)?,
-        }
-        Ok(())
-      },
-      Error::Json(err) => write!(fmt, "{}", err),
-      Error::Str(err) => fmt.write_str(err),
-      Error::Url(err) => write!(fmt, "{}", err),
-      Error::WebSocket(err) => write!(fmt, "{}", err),
-    }
-  }
-}
-
-impl StdError for Error {
-  fn source(&self) -> Option<&(dyn StdError + 'static)> {
-    match self {
-      Error::Http(err) => err.source(),
-      Error::HttpStatus(..) => None,
-      Error::Json(err) => err.source(),
-      Error::Str(..) => None,
-      Error::Url(err) => err.source(),
-      Error::WebSocket(err) => err.source(),
-    }
-  }
+  #[error("encountered a websocket related error")]
+  WebSocket(
+    #[from]
+    #[source]
+    WebSocketError,
+  ),
 }
 
 impl From<EndpointError> for Error {
   fn from(src: EndpointError) -> Self {
     match src {
       EndpointError::Http(err) => Error::Http(err),
-      EndpointError::HttpStatus(status, data) => Error::HttpStatus(status, data),
+      EndpointError::HttpStatus(status, data) => Error::HttpStatus(status, HttpBody(data)),
       EndpointError::Json(err) => Error::Json(err),
     }
   }
 }
 
-impl From<JsonError> for Error {
-  fn from(e: JsonError) -> Self {
-    Error::Json(e)
-  }
-}
 
-impl From<ParseError> for Error {
-  fn from(e: ParseError) -> Self {
-    Error::Url(e)
-  }
-}
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-impl From<WebSocketError> for Error {
-  fn from(e: WebSocketError) -> Self {
-    Error::WebSocket(e)
+  use std::error::Error as _;
+
+
+  /// Check that textual error representations are as expected.
+  #[test]
+  fn str_errors() {
+    let err = Error::Str("foobar failed".into());
+    assert_eq!(err.to_string(), "foobar failed");
+
+    let err = Error::from(WebSocketError::ConnectionClosed);
+    assert_eq!(err.to_string(), "encountered a websocket related error");
+    assert_eq!(
+      err.source().unwrap().to_string(),
+      WebSocketError::ConnectionClosed.to_string()
+    );
+
+    let status = HttpStatusCode::from_u16(404).unwrap();
+    let body = HttpBody(b"entity not available".to_vec());
+    let err = Error::HttpStatus(status, body);
+    assert_eq!(
+      err.to_string(),
+      "encountered an unexpected HTTP status: 404 Not Found"
+    );
+    assert_eq!(err.source().unwrap().to_string(), "entity not available");
   }
 }

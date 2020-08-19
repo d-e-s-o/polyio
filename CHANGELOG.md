@@ -3,6 +3,7 @@ Unreleased
 - Added `ApiInfo::new` constructor
 - Removed `events::Trade::conditions` and `events::Quote::condition`
   members
+- Use `thiserror` crate for defining error types
 - Enabled CI pipeline comprising building and linting of the project
   - Added badge indicating pipeline status
 - Bumped `http-endpoint` dependency to `0.3`
