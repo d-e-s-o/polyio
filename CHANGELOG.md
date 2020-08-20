@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.6.0
+-----
 - Added `ApiInfo::new` constructor
 - Removed `events::Trade::conditions` and `events::Quote::condition`
   members
