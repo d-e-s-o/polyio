@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Exported `api::Response` type
+
+
 0.6.0
 -----
 - Added `ApiInfo::new` constructor

@@ -19,3 +19,6 @@ pub mod ticker_news;
 pub mod ticker_types;
 /// Definitions pertaining the available tickers.
 pub mod tickers;
+
+/// A response type used in certain API calls.
+pub use response::Response;
