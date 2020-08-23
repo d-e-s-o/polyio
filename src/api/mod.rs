@@ -22,3 +22,5 @@ pub mod tickers;
 
 /// A response type used in certain API calls.
 pub use response::Response;
+/// An error type for responses indicating failures.
+pub use response::ResponseError;

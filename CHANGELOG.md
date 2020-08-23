@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Introduced new `api::ResponseError` type
 - Exported `api::Response` type
 
 
