@@ -3,19 +3,10 @@
 
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::str::from_utf8;
 
 use futures::Stream;
 
-use http::request::Builder as HttpRequestBuilder;
-use http::Request;
 use http_endpoint::Endpoint;
-
-use hyper::Body;
-use hyper::body::to_bytes;
-use hyper::Client as HttpClient;
-use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
 
 use tracing::debug;
 use tracing::instrument;
@@ -85,49 +76,48 @@ where
 }
 
 
-/// A `Client` is the entity used by clients of this module for
-/// interacting with the Polygon API.
-#[derive(Debug)]
-pub struct Client {
-  api_info: ApiInfo,
-  client: HttpClient<HttpsConnector<HttpConnector>, Body>,
+/// Build the URL for a request to the provided endpoint.
+fn url<E>(api_info: &ApiInfo, input: &E::Input) -> Url
+where
+  E: Endpoint,
+{
+  let mut url = api_info.api_url.clone();
+  url.set_path(&E::path(&input));
+  url.set_query(E::query(&input).as_ref().map(AsRef::as_ref));
+  url
+    .query_pairs_mut()
+    .append_pair(API_KEY_PARAM, &api_info.api_key);
+
+  url
 }
 
-impl Client {
-  /// Create a new `Client` using the given API information.
-  pub fn new(api_info: ApiInfo) -> Self {
-    let client = HttpClient::builder().build(HttpsConnector::new());
-    Self { api_info, client }
-  }
 
-  /// Create a new `Client` with information from the environment.
-  pub fn from_env() -> Result<Self, Error> {
-    let api_info = ApiInfo::from_env()?;
-    Ok(Self::new(api_info))
-  }
+mod hype {
+  use super::*;
 
-  /// Build the URL for a request to the provided endpoint.
-  fn url<E>(&self, input: &E::Input) -> Url
-  where
-    E: Endpoint,
-  {
-    let mut url = self.api_info.api_url.clone();
-    url.set_path(&E::path(&input));
-    url.set_query(E::query(&input).as_ref().map(AsRef::as_ref));
-    url
-      .query_pairs_mut()
-      .append_pair(API_KEY_PARAM, &self.api_info.api_key);
+  use std::str::from_utf8;
 
-    url
+  use http::request::Builder as HttpRequestBuilder;
+  use http::Request;
+
+  use hyper::body::to_bytes;
+  use hyper::client::HttpConnector;
+  use hyper::Body;
+  use hyper::Client as HttpClient;
+  use hyper_tls::HttpsConnector;
+
+  pub type Backend = HttpClient<HttpsConnector<HttpConnector>, Body>;
+
+  pub fn new() -> Backend {
+    HttpClient::builder().build(HttpsConnector::new())
   }
 
   /// Create a `Request` to the endpoint.
-  #[cfg(not(feature = "wasm"))]
-  fn request<E>(&self, input: &E::Input) -> Result<Request<Body>, E::Error>
+  fn request<E>(api_info: &ApiInfo, input: &E::Input) -> Result<Request<Body>, E::Error>
   where
     E: Endpoint,
   {
-    let url = self.url::<E>(input);
+    let url = url::<E>(api_info, input);
     let request = HttpRequestBuilder::new()
       .method(E::method())
       .uri(url.as_str())
@@ -136,14 +126,16 @@ impl Client {
     Ok(request)
   }
 
-  /// Create and issue a request and decode the response.
-  #[instrument(level = "debug", skip(self, input))]
   #[allow(clippy::cognitive_complexity)]
-  pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, RequestError<E::Error>>
+  pub async fn issue<E>(
+    client: &Backend,
+    api_info: &ApiInfo,
+    input: E::Input,
+  ) -> Result<E::Output, RequestError<E::Error>>
   where
     E: Endpoint,
   {
-    let req = self.request::<E>(&input).map_err(RequestError::Endpoint)?;
+    let req = request::<E>(&api_info, &input).map_err(RequestError::Endpoint)?;
     let span = span!(
       Level::DEBUG,
       "request",
@@ -155,7 +147,7 @@ impl Client {
       debug!("requesting");
       trace!(request = debug(&req));
 
-      let result = self.client.request(req).await?;
+      let result = client.request(req).await?;
       let status = result.status();
       debug!(status = debug(&status));
       trace!(response = debug(&result));
@@ -172,6 +164,39 @@ impl Client {
     }
     .instrument(span)
     .await
+  }
+}
+
+use hype::*;
+
+/// A `Client` is the entity used by clients of this module for
+/// interacting with the Polygon API.
+#[derive(Debug)]
+pub struct Client {
+  api_info: ApiInfo,
+  client: Backend,
+}
+
+impl Client {
+  /// Create a new `Client` using the given API information.
+  pub fn new(api_info: ApiInfo) -> Self {
+    let client = new();
+    Self { api_info, client }
+  }
+
+  /// Create a new `Client` with information from the environment.
+  pub fn from_env() -> Result<Self, Error> {
+    let api_info = ApiInfo::from_env()?;
+    Ok(Self::new(api_info))
+  }
+
+  /// Create and issue a request and decode the response.
+  #[instrument(level = "debug", skip(self, input))]
+  pub async fn issue<E>(&self, input: E::Input) -> Result<E::Output, RequestError<E::Error>>
+  where
+    E: Endpoint,
+  {
+    issue::<E>(&self.client, &self.api_info, input).await
   }
 
   /// Subscribe to the given stream in order to receive updates.
