@@ -159,10 +159,12 @@ mod tests {
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
+  #[cfg(not(target_arch = "wasm32"))]
   use test_env_log::test;
 
   use time_util::parse_system_time_from_str;
 
+  #[cfg(not(target_arch = "wasm32"))]
   use crate::Client;
 
 
@@ -232,6 +234,7 @@ mod tests {
     );
   }
 
+  #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_empty_aggregates() {
     let client = Client::from_env().unwrap();
@@ -253,6 +256,7 @@ mod tests {
     assert_eq!(result, Vec::new());
   }
 
+  #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_aapl_day_aggregates() {
     let client = Client::from_env().unwrap();
@@ -285,6 +289,7 @@ mod tests {
     );
   }
 
+  #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_spy_5min_aggregates() {
     let client = Client::from_env().unwrap();

@@ -11,7 +11,7 @@ stages:
   - build
   - test
 
-build:cargo:
+build-native:cargo:
   stage: build
   artifacts:
     paths:
@@ -20,10 +20,17 @@ build:cargo:
   - rustc --version && cargo --version
   - cargo build --tests --all --verbose
 
+build-wasm32:cargo:
+  stage: build
+  script:
+  - rustup target add wasm32-unknown-unknown
+  - rustc --version && cargo --version
+  - cargo build --target=wasm32-unknown-unknown --tests --all --verbose
+
 lint:clippy:
   stage: test
   dependencies:
-    - build:cargo
+    - build-native:cargo
   script:
   - rustup component add clippy
   - cargo clippy --all-targets --all-features -- -D warnings

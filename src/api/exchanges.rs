@@ -52,8 +52,10 @@ mod tests {
 
   use serde_json::from_str as from_json;
 
+  #[cfg(not(target_arch = "wasm32"))]
   use test_env_log::test;
 
+  #[cfg(not(target_arch = "wasm32"))]
   use crate::Client;
 
 
@@ -105,6 +107,7 @@ mod tests {
     assert_eq!(exchgs[3].id, 16);
   }
 
+  #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_exchanges() {
     let client = Client::from_env().unwrap();

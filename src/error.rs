@@ -11,9 +11,11 @@ use http::Error as HttpError;
 use http::StatusCode as HttpStatusCode;
 use http_endpoint::Error as EndpointError;
 
+#[cfg(not(target_arch = "wasm32"))]
 use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
 use thiserror::Error as ThisError;
+#[cfg(not(target_arch = "wasm32"))]
 use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
 
@@ -30,6 +32,7 @@ where
   #[error("the endpoint reported an error")]
   Endpoint(E),
   /// An error reported by the `hyper` crate.
+  #[cfg(not(target_arch = "wasm32"))]
   #[error("the hyper crate reported an error")]
   Hyper(
     #[from]
@@ -81,6 +84,7 @@ pub enum Error {
     ParseError,
   ),
   /// A websocket error.
+  #[cfg(not(target_arch = "wasm32"))]
   #[error("encountered a websocket related error")]
   WebSocket(
     #[from]
@@ -113,11 +117,11 @@ mod tests {
     let err = Error::Str("foobar failed".into());
     assert_eq!(err.to_string(), "foobar failed");
 
-    let err = Error::from(WebSocketError::ConnectionClosed);
-    assert_eq!(err.to_string(), "encountered a websocket related error");
+    let err = Error::from(ParseError::EmptyHost);
+    assert_eq!(err.to_string(), "failed to parse the URL");
     assert_eq!(
       err.source().unwrap().to_string(),
-      WebSocketError::ConnectionClosed.to_string()
+      ParseError::EmptyHost.to_string()
     );
 
     let status = HttpStatusCode::from_u16(404).unwrap();

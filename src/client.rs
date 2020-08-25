@@ -4,6 +4,7 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 
+#[cfg(not(target_arch = "wasm32"))]
 use futures::Stream;
 
 use http_endpoint::Endpoint;
@@ -15,8 +16,10 @@ use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
+#[cfg(not(target_arch = "wasm32"))]
 use serde_json::Error as JsonError;
 
+#[cfg(not(target_arch = "wasm32"))]
 use tungstenite::tungstenite::Error as WebSocketError;
 
 use url::Url;
@@ -24,10 +27,13 @@ use url::Url;
 use crate::api_info::ApiInfo;
 use crate::error::Error;
 use crate::error::RequestError;
-use crate::events::Event;
-use crate::events::stream;
-use crate::events::Subscription;
 use crate::events::Stock;
+use crate::events::Subscription;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::events::{
+  stream,
+  Event,
+};
 
 /// The query parameter used for communicating the API key to Polygon.
 const API_KEY_PARAM: &str = "apiKey";
@@ -92,6 +98,7 @@ where
 }
 
 
+#[cfg(not(target_arch = "wasm32"))]
 mod hype {
   use super::*;
 
@@ -167,7 +174,39 @@ mod hype {
   }
 }
 
+
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+  use super::*;
+
+  pub type Backend = ();
+
+  pub fn new() -> Backend {}
+
+  /// Create a `Request` to the endpoint.
+  fn request<E>(api_info: &ApiInfo, input: &E::Input) -> Result<(), RequestError<E::Error>>
+  where
+    E: Endpoint,
+  {
+    unimplemented!()
+  }
+
+  pub async fn issue<E>(
+    client: &Backend,
+    api_info: &ApiInfo,
+    input: E::Input,
+  ) -> Result<E::Output, RequestError<E::Error>>
+  where
+    E: Endpoint,
+  {
+    unimplemented!()
+  }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 use hype::*;
+#[cfg(target_arch = "wasm32")]
+use wasm::*;
 
 /// A `Client` is the entity used by clients of this module for
 /// interacting with the Polygon API.
@@ -200,6 +239,7 @@ impl Client {
   }
 
   /// Subscribe to the given stream in order to receive updates.
+  #[cfg(not(target_arch = "wasm32"))]
   pub async fn subscribe<S>(
     &self,
     subscriptions: S,
@@ -212,6 +252,7 @@ impl Client {
   }
 
   /// Implementation of `subscribe` that creates a proper span.
+  #[cfg(not(target_arch = "wasm32"))]
   #[instrument(level = "debug", skip(self, subscriptions))]
   async fn subscribe_<S>(
     &self,
@@ -243,6 +284,7 @@ mod tests {
 
   use maplit::hashset;
 
+  #[cfg(not(target_arch = "wasm32"))]
   use test_env_log::test;
 
 
@@ -283,6 +325,7 @@ mod tests {
     assert_eq!(normalize(subscriptions), expected);
   }
 
+  #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn auth_failure() {
     let mut client = Client::from_env().unwrap();
