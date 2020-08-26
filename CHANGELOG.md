@@ -1,7 +1,9 @@
 Unreleased
 ----------
+- Return inner error as source in `RequestError::Endpoint` variant
 - Introduced new `api::ResponseError` type
 - Exported `api::Response` type
+- Bumped `http-endpoint` dependency to `0.4`
 
 
 0.6.0

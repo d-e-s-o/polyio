@@ -23,7 +23,7 @@ A create for interacting with the Polygon API at polygon.io.
 chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
-http-endpoint = "0.3"
+http-endpoint = "0.4"
 num-decimal = {version = "0.2", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"

@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::fmt::Debug;
+use std::error::Error as StdError;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
@@ -26,11 +26,11 @@ use crate::Str;
 #[derive(Debug, ThisError)]
 pub enum RequestError<E>
 where
-  E: Debug + Display,
+  E: StdError + 'static,
 {
   /// An endpoint reported error.
   #[error("the endpoint reported an error")]
-  Endpoint(E),
+  Endpoint(#[source] E),
   /// An error reported by the `hyper` crate.
   #[cfg(not(target_arch = "wasm32"))]
   #[error("the hyper crate reported an error")]
@@ -107,8 +107,6 @@ impl From<EndpointError> for Error {
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  use std::error::Error as _;
 
 
   /// Check that textual error representations are as expected.
