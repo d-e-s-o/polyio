@@ -6,7 +6,11 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 use std::str::from_utf8;
+#[cfg(target_arch = "wasm32")]
+use std::string::FromUtf8Error;
 
+#[cfg(target_arch = "wasm32")]
+use http::status::InvalidStatusCode;
 use http::Error as HttpError;
 use http::StatusCode as HttpStatusCode;
 use http_endpoint::Error as EndpointError;
@@ -18,6 +22,8 @@ use thiserror::Error as ThisError;
 #[cfg(not(target_arch = "wasm32"))]
 use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;
 
 use crate::Str;
 
@@ -39,6 +45,30 @@ where
     #[source]
     HyperError,
   ),
+  /// A UTF-8 error that may occur when converting bytes to a string.
+  #[cfg(target_arch = "wasm32")]
+  #[error("a UTF-8 conversion failed")]
+  FromUtf8Error(
+    #[from]
+    #[source]
+    FromUtf8Error,
+  ),
+  /// An invalid status code was encountered.
+  #[cfg(target_arch = "wasm32")]
+  #[error("an invalid HTTP status was received")]
+  InvalidStatusCode(
+    #[from]
+    #[source]
+    InvalidStatusCode,
+  ),
+  /// A JavaScript reported error.
+  // Note that we cannot store the `JsValue` object directly because it
+  // does not implement `Send`. So we will "post-process" it, by
+  // extracting the string or using the debug representation if it
+  // cannot be converted into one.
+  #[cfg(target_arch = "wasm32")]
+  #[error("a JavaScript error occurred: {0}")]
+  JavaScript(String),
 }
 
 
@@ -52,6 +82,19 @@ impl Display for HttpBody {
       Err(b) => write!(fmt, "{:?}", b)?,
     }
     Ok(())
+  }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl<E> From<JsValue> for RequestError<E>
+where
+  E: StdError + 'static,
+{
+  fn from(e: JsValue) -> Self {
+    match e.as_string() {
+      Some(s) => Self::JavaScript(s),
+      None => Self::JavaScript(format!("{:?}", e)),
+    }
   }
 }
 
@@ -108,6 +151,8 @@ impl From<EndpointError> for Error {
 mod tests {
   use super::*;
 
+  use std::str::Utf8Error;
+
 
   /// Check that textual error representations are as expected.
   #[test]
@@ -130,5 +175,25 @@ mod tests {
       "encountered an unexpected HTTP status: 404 Not Found"
     );
     assert_eq!(err.source().unwrap().to_string(), "entity not available");
+  }
+
+  /// Ensure that our `RequestError` type fulfills all the requirements
+  /// we deem necessary.
+  #[test]
+  #[allow(unreachable_code)]
+  fn ensure_request_error_trait_impls() {
+    fn check<E>(_: E)
+    where
+      E: StdError + Send + Sync + 'static,
+    {
+    }
+
+    fn err() -> RequestError<Utf8Error> {
+      unimplemented!()
+    }
+
+    if false {
+      check(err());
+    }
   }
 }

@@ -39,6 +39,23 @@ hyper-tls = {version = "0.4", default-features = false}
 tungstenite = {package = "async-tungstenite", version = "0.5", default-features = false, features = ["tokio-runtime", "tokio-tls"]}
 websocket-util = "0.5"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = {version = "0.3", default-features = false}
+wasm-bindgen = {version = "0.2", default-features = false, features = ["std", "serde-serialize"]}
+wasm-bindgen-futures = {version = "0.4", default-features = false}
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = "0.3"
+default-features = false
+features = [
+  'Headers',
+  'Request',
+  'RequestInit',
+  'RequestMode',
+  'Response',
+  'Window',
+]
+
 [dev-dependencies]
 maplit = {version = "1.0", default-features = false}
 

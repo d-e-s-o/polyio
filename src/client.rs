@@ -179,16 +179,49 @@ mod hype {
 mod wasm {
   use super::*;
 
-  pub type Backend = ();
+  use http::StatusCode;
 
-  pub fn new() -> Backend {}
+  use js_sys::JSON::stringify;
+
+  use wasm_bindgen::JsCast;
+  use wasm_bindgen::JsValue;
+  use wasm_bindgen_futures::JsFuture;
+
+  use web_sys::window;
+  use web_sys::Request;
+  use web_sys::RequestInit;
+  use web_sys::RequestMode;
+  use web_sys::Response;
+  use web_sys::Window;
+
+  pub type Backend = Window;
+
+  pub fn new() -> Backend {
+    window().expect("no window found; not running inside a browser?")
+  }
 
   /// Create a `Request` to the endpoint.
-  fn request<E>(api_info: &ApiInfo, input: &E::Input) -> Result<(), RequestError<E::Error>>
+  fn request<E>(api_info: &ApiInfo, input: &E::Input) -> Result<Request, RequestError<E::Error>>
   where
     E: Endpoint,
   {
-    unimplemented!()
+    let url = url::<E>(api_info, input);
+    let body = E::body(input)
+      .map_err(E::Error::from)
+      .map_err(RequestError::Endpoint)?;
+
+    let mut opts = RequestInit::new();
+    opts.mode(RequestMode::Cors);
+    opts.method(E::method().as_str());
+
+    // And then check how *exactly* to retrieve the cause.
+    if !body.is_empty() {
+      let body = String::from_utf8(body.into_owned())?;
+      opts.body(Some(&JsValue::from(body)));
+    }
+
+    let request = Request::new_with_str_and_init(url.as_str(), &opts)?;
+    Ok(request)
   }
 
   pub async fn issue<E>(
@@ -199,7 +232,34 @@ mod wasm {
   where
     E: Endpoint,
   {
-    unimplemented!()
+    let req = request::<E>(api_info, &input)?;
+    let span = span!(
+      Level::DEBUG,
+      "request",
+      method = display(&req.method()),
+      url = display(&req.url()),
+    );
+
+    async move {
+      debug!("requesting");
+      trace!(request = debug(&req));
+
+      let response = JsFuture::from(client.fetch_with_request(&req)).await?;
+      let response = response.dyn_into::<Response>()?;
+
+      let status = response.status();
+      debug!(status = debug(&status));
+      trace!(response = debug(&response));
+
+      let json = JsFuture::from(response.json().unwrap()).await?;
+      let body = &String::from(&stringify(&json)?);
+      trace!(body = display(&body));
+
+      let status = StatusCode::from_u16(status)?;
+      E::evaluate(status, body.as_bytes()).map_err(RequestError::Endpoint)
+    }
+    .instrument(span)
+    .await
   }
 }
 
