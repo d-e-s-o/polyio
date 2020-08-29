@@ -5,6 +5,8 @@ Unreleased
 - Introduced new `api::ResponseError` type
 - Exported `api::Response` type
 - Bumped `http-endpoint` dependency to `0.4`
+- Bumped `websocket-util` dependency to `0.6`
+- Bumped `async-tungstenite` dependency to `0.8`
 
 
 0.6.0
