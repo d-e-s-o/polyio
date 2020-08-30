@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.7.0
+-----
 - Added support for `wasm32-unknown-unknown` target using Web APIs
 - Return inner error as source in `RequestError::Endpoint` variant
 - Introduced new `api::ResponseError` type
