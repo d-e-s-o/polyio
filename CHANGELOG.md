@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped minimum supported Rust version to `1.42`
+
+
 0.7.0
 -----
 - Added support for `wasm32-unknown-unknown` target using Web APIs
