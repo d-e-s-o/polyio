@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Reintroduced `Option` wrapper to aggregate response type
 - Bumped minimum supported Rust version to `1.42`
 
 

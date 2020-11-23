@@ -124,7 +124,7 @@ pub struct Aggregate {
   pub low_price: Num,
 }
 
-type GetResponse = Response<Vec<Aggregate>>;
+type GetResponse = Response<Option<Vec<Aggregate>>>;
 
 Endpoint! {
   /// The representation of a GET request to the
@@ -155,6 +155,7 @@ mod tests {
   use super::*;
 
   use std::f64::EPSILON;
+  use std::time::Duration;
 
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
@@ -223,6 +224,7 @@ mod tests {
     let mut aggregates = from_json::<GetResponse>(&response)
       .unwrap()
       .into_result()
+      .unwrap()
       .unwrap();
 
     assert_eq!(aggregates.len(), 1);
@@ -251,6 +253,7 @@ mod tests {
       .await
       .unwrap()
       .into_result()
+      .unwrap()
       .unwrap();
 
     assert_eq!(result, Vec::new());
@@ -273,6 +276,7 @@ mod tests {
       .await
       .unwrap()
       .into_result()
+      .unwrap()
       .unwrap();
 
     // The number of trading days was inferred to be 19. There was
@@ -287,6 +291,29 @@ mod tests {
       aggregates.last().unwrap().timestamp,
       parse_system_time_from_str("2018-02-28T00:00:00Z").unwrap()
     );
+  }
+
+  #[cfg(not(target_arch = "wasm32"))]
+  #[test(tokio::test)]
+  async fn request_non_existent_aggregates() {
+    let client = Client::from_env().unwrap();
+    let today = SystemTime::now();
+    let request = AggregateReq {
+      symbol: "SPWR".into(),
+      time_span: TimeSpan::Day,
+      multiplier: 1,
+      start_time: today + Duration::from_secs(24 * 60 * 60),
+      end_time: today + 7 * Duration::from_secs(24 * 60 * 60),
+    };
+
+    let aggregates = client
+      .issue::<Get>(request)
+      .await
+      .unwrap()
+      .into_result()
+      .unwrap();
+
+    assert_eq!(aggregates, None);
   }
 
   #[cfg(not(target_arch = "wasm32"))]
@@ -306,6 +333,7 @@ mod tests {
       .await
       .unwrap()
       .into_result()
+      .unwrap()
       .unwrap();
 
     assert_eq!(aggregates.len(), 383);
