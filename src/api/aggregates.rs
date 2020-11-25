@@ -15,9 +15,8 @@ use num_decimal::Num;
 use serde::Deserialize;
 use serde::Serialize;
 
-use time_util::system_time_from_millis_in_tz;
-use time_util::system_time_to_millis_in_tz;
-use time_util::EST;
+use time_util::system_time_from_millis_in_new_york;
+use time_util::system_time_to_millis_in_new_york;
 
 use crate::api::response::Response;
 use crate::Str;
@@ -100,8 +99,8 @@ pub struct Aggregate {
   /// The aggregate's timestamp.
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
-    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
+    deserialize_with = "system_time_from_millis_in_new_york",
+    serialize_with = "system_time_to_millis_in_new_york",
   )]
   pub timestamp: SystemTime,
   /// The trade volume during the aggregated time frame.
@@ -290,6 +289,33 @@ mod tests {
     assert_eq!(
       aggregates.last().unwrap().timestamp,
       parse_system_time_from_str("2018-02-28T00:00:00Z").unwrap()
+    );
+  }
+
+  #[cfg(not(target_arch = "wasm32"))]
+  #[test(tokio::test)]
+  async fn request_xlk_day_aggregates_daylight_savings() {
+    let client = Client::from_env().unwrap();
+    let request = AggregateReq {
+      symbol: "XLK".into(),
+      time_span: TimeSpan::Day,
+      multiplier: 1,
+      start_time: parse_system_time_from_str("2020-09-07T00:00:00Z").unwrap(),
+      end_time: parse_system_time_from_str("2020-09-08T00:00:00Z").unwrap(),
+    };
+
+    let aggregates = client
+      .issue::<Get>(request)
+      .await
+      .unwrap()
+      .into_result()
+      .unwrap()
+      .unwrap();
+
+    assert_eq!(aggregates.len(), 1);
+    assert_eq!(
+      aggregates.first().unwrap().timestamp,
+      parse_system_time_from_str("2020-09-08T00:00:00Z").unwrap()
     );
   }
 

@@ -1,7 +1,9 @@
 Unreleased
 ----------
 - Reintroduced `Option` wrapper to aggregate response type
+- Fixed time stamp conversions to correctly honor daylight savings time
 - Bumped minimum supported Rust version to `1.42`
+- Bumped `time-util` dependency to `0.3`
 
 
 0.7.0

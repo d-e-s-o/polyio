@@ -15,9 +15,8 @@ use serde::Serialize;
 use serde_json::from_slice as from_json;
 use serde_json::Error as JsonError;
 
-use time_util::system_time_from_millis_in_tz;
-use time_util::system_time_to_millis_in_tz;
-use time_util::EST;
+use time_util::system_time_from_millis_in_new_york;
+use time_util::system_time_to_millis_in_new_york;
 
 use tracing::debug;
 use tracing::trace;
@@ -51,8 +50,8 @@ pub struct Trade {
   /// The trade's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
-    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
+    deserialize_with = "system_time_from_millis_in_new_york",
+    serialize_with = "system_time_to_millis_in_new_york",
   )]
   pub timestamp: SystemTime,
 }
@@ -85,8 +84,8 @@ pub struct Quote {
   /// The quote's timestamp (in UNIX milliseconds).
   #[serde(
     rename = "t",
-    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
-    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
+    deserialize_with = "system_time_from_millis_in_new_york",
+    serialize_with = "system_time_to_millis_in_new_york",
   )]
   pub timestamp: SystemTime,
 }
@@ -120,15 +119,15 @@ pub struct Aggregate {
   /// The tick's start timestamp (in UNIX milliseconds).
   #[serde(
     rename = "s",
-    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
-    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
+    deserialize_with = "system_time_from_millis_in_new_york",
+    serialize_with = "system_time_to_millis_in_new_york",
   )]
   pub start_timestamp: SystemTime,
   /// The tick's end timestamp (in UNIX milliseconds).
   #[serde(
     rename = "e",
-    deserialize_with = "system_time_from_millis_in_tz::<EST, _>",
-    serialize_with = "system_time_to_millis_in_tz::<EST, _>",
+    deserialize_with = "system_time_from_millis_in_new_york",
+    serialize_with = "system_time_to_millis_in_new_york",
   )]
   pub end_timestamp: SystemTime,
 }
