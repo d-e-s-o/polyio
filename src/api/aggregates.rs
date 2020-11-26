@@ -86,8 +86,8 @@ pub struct AggregateReq {
   pub start_time: SystemTime,
   /// The end time to request aggregates for.
   ///
-  /// Note that the reported the reported aggregates will *not* include
-  /// this time, i.e., the range is exclusive of this end date.
+  /// Note that the reported the reported aggregates will include
+  /// this time, i.e., the range is inclusive of this end date.
   pub end_time: SystemTime,
 }
 
@@ -267,7 +267,7 @@ mod tests {
       time_span: TimeSpan::Day,
       multiplier: 1,
       start_time: parse_system_time_from_str("2018-02-01T00:00:00Z").unwrap(),
-      end_time: parse_system_time_from_str("2018-03-01T00:00:00Z").unwrap(),
+      end_time: parse_system_time_from_str("2018-02-28T00:00:00Z").unwrap(),
     };
 
     let aggregates = client
