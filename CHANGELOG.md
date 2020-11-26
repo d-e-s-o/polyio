@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.8.0
+-----
 - Reintroduced `Option` wrapper to aggregate response type
 - Adjusted aggregate end date to be inclusive
 - Fixed time stamp conversions to correctly honor daylight savings time
