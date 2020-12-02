@@ -1,12 +1,8 @@
 // Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::convert::TryInto;
 use std::time::SystemTime;
-use std::time::SystemTimeError;
-use std::time::UNIX_EPOCH;
 
-use chrono::offset::TimeZone;
 use chrono::offset::Utc;
 use chrono::DateTime;
 
@@ -22,19 +18,12 @@ use crate::api::response::Response;
 use crate::Str;
 
 
-/// Convert a `SystemTime` into a `DateTime`.
-fn convert_time(time: &SystemTime) -> Result<DateTime<Utc>, SystemTimeError> {
-  time.duration_since(UNIX_EPOCH).map(|duration| {
-    let secs = duration.as_secs().try_into().unwrap();
-    let nanos = duration.subsec_nanos();
-    let time = Utc.timestamp(secs, nanos);
-    time
-  })
-}
-
 /// Format a system time as a date.
-fn format_date(time: &SystemTime) -> Result<String, SystemTimeError> {
-  convert_time(time).map(|time| time.date().format("%Y-%m-%d").to_string())
+fn format_date(time: &SystemTime) -> String {
+  DateTime::<Utc>::from(*time)
+    .date()
+    .format("%Y-%m-%d")
+    .to_string()
 }
 
 
@@ -141,9 +130,8 @@ Endpoint! {
       sym = input.symbol,
       mult = input.multiplier,
       span = input.time_span.as_ref(),
-      // TODO: We probably shouldn't unwrap.
-      start = format_date(&input.start_time).unwrap(),
-      end = format_date(&input.end_time).unwrap(),
+      start = format_date(&input.start_time),
+      end = format_date(&input.end_time),
     ).into()
   }
 }
