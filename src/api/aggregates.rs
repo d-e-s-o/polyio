@@ -241,7 +241,7 @@ mod tests {
       .unwrap()
       .into_result()
       .unwrap()
-      .unwrap();
+      .unwrap_or_default();
 
     assert_eq!(result, Vec::new());
   }
@@ -351,5 +351,84 @@ mod tests {
       .unwrap();
 
     assert_eq!(aggregates.len(), 383);
+  }
+
+  #[cfg(not(target_arch = "wasm32"))]
+  #[test(tokio::test)]
+  async fn request_xlk_hour_aggregates() {
+    let client = Client::from_env().unwrap();
+    let request = AggregateReq {
+      symbol: "XLK".into(),
+      time_span: TimeSpan::Hour,
+      multiplier: 1,
+      // Note that the Polygon API actually only supports retrieval of
+      // data for the entire day. The granularity will still be an hour,
+      // though.
+      start_time: parse_system_time_from_str("2018-02-05T00:00:00Z").unwrap(),
+      end_time: parse_system_time_from_str("2018-02-05T00:00:00Z").unwrap(),
+    };
+
+    let aggregates = client
+      .issue::<Get>(request)
+      .await
+      .unwrap()
+      .into_result()
+      .unwrap()
+      .unwrap();
+
+    // We expect 13 aggregates for the hours 7:00 to 19:00 (both inclusive).
+    assert_eq!(aggregates.len(), 13);
+    assert_eq!(
+      aggregates[0].timestamp,
+      parse_system_time_from_str("2018-02-05T07:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[1].timestamp,
+      parse_system_time_from_str("2018-02-05T08:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[2].timestamp,
+      parse_system_time_from_str("2018-02-05T09:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[3].timestamp,
+      parse_system_time_from_str("2018-02-05T10:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[4].timestamp,
+      parse_system_time_from_str("2018-02-05T11:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[5].timestamp,
+      parse_system_time_from_str("2018-02-05T12:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[6].timestamp,
+      parse_system_time_from_str("2018-02-05T13:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[7].timestamp,
+      parse_system_time_from_str("2018-02-05T14:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[8].timestamp,
+      parse_system_time_from_str("2018-02-05T15:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[9].timestamp,
+      parse_system_time_from_str("2018-02-05T16:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[10].timestamp,
+      parse_system_time_from_str("2018-02-05T17:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[11].timestamp,
+      parse_system_time_from_str("2018-02-05T18:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[12].timestamp,
+      parse_system_time_from_str("2018-02-05T19:00:00Z").unwrap()
+    );
   }
 }
