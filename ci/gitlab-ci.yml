@@ -18,14 +18,14 @@ build-native:cargo:
       - target/
   script:
   - rustc --version && cargo --version
-  - cargo build --tests --all --verbose
+  - cargo build --lib --tests --verbose
 
 build-wasm32:cargo:
   stage: build
   script:
   - rustup target add wasm32-unknown-unknown
   - rustc --version && cargo --version
-  - cargo build --target=wasm32-unknown-unknown --tests --all --verbose
+  - cargo build --target=wasm32-unknown-unknown --lib --tests --verbose
 
 lint:clippy:
   stage: test
