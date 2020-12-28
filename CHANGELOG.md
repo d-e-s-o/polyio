@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added support for retrieving market status & time
+
+
 0.8.0
 -----
 - Reintroduced `Option` wrapper to aggregate response type

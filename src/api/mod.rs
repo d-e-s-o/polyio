@@ -9,6 +9,8 @@ pub mod aggregates;
 pub mod exchanges;
 /// Definitions pertaining the available locales.
 pub mod locales;
+/// Definitions for retrieving the current market status.
+pub mod market_status;
 /// Definitions pertaining the available markets.
 pub mod markets;
 /// Definitions pertaining a ticker.
