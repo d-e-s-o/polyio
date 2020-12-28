@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for retrieving market status & time
+- Excluded unnecessary files from being contained in release bundle
 
 
 0.8.0
