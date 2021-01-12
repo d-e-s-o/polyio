@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -21,10 +21,10 @@ use time_util::system_time_to_millis_in_new_york;
 use tracing::debug;
 use tracing::trace;
 
-use tungstenite::tokio::connect_async_with_tls_connector;
-use tungstenite::tungstenite::Error as WebSocketError;
+use tungstenite::connect_async;
 
 use websocket_util::stream as do_stream;
+use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
@@ -341,7 +341,7 @@ where
 
   debug!(message = "connecting", url = display(&url));
 
-  let (mut stream, response) = connect_async_with_tls_connector(url, None).await?;
+  let (mut stream, response) = connect_async(url).await?;
   debug!("connection successful");
   trace!(response = debug(&response));
 

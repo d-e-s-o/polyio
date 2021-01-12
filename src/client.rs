@@ -19,10 +19,10 @@ use tracing_futures::Instrument;
 #[cfg(not(target_arch = "wasm32"))]
 use serde_json::Error as JsonError;
 
-#[cfg(not(target_arch = "wasm32"))]
-use tungstenite::tungstenite::Error as WebSocketError;
-
 use url::Url;
+
+#[cfg(not(target_arch = "wasm32"))]
+use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;

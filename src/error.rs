@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
@@ -19,11 +19,11 @@ use http_endpoint::Error as EndpointError;
 use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
 use thiserror::Error as ThisError;
-#[cfg(not(target_arch = "wasm32"))]
-use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsValue;
+#[cfg(not(target_arch = "wasm32"))]
+use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::Str;
 

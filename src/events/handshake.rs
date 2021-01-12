@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use futures::Sink;
@@ -16,8 +16,8 @@ use serde::Serialize;
 use serde_json::from_slice as from_json;
 use serde_json::to_string as to_json;
 
-use tungstenite::tungstenite::Error as WebSocketError;
-use tungstenite::tungstenite::Message as WebSocketMsg;
+use websocket_util::tungstenite::Error as WebSocketError;
+use websocket_util::tungstenite::Message as WebSocketMsg;
 
 use crate::Error;
 use crate::events::stream::Code;
