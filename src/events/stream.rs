@@ -393,9 +393,9 @@ mod tests {
 
   const API_KEY: &str = "USER12345678";
   const CONNECTED_MSG: &str =
-    { r#"[{"ev":"status","status":"connected","message":"Connected Successfully"}]"# };
+    r#"[{"ev":"status","status":"connected","message":"Connected Successfully"}]"#;
   const DISCONNECTED_MSG: &str =
-    { r#"[{"ev":"status","status":"disconnected","message":"Reason: Max connections reached"}]"# };
+    r#"[{"ev":"status","status":"disconnected","message":"Reason: Max connections reached"}]"#;
   const AUTH_REQ: &str = r#"{"action":"auth","params":"USER12345678"}"#;
   const AUTH_RESP: &str = r#"[{"ev":"status","status":"auth_success","message":"authenticated"}]"#;
   const SUB_REQ: &str = r#"{"action":"subscribe","params":"T.MSFT,Q.*"}"#;

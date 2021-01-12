@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped minimum supported Rust version to `1.44`
+
+
 0.8.1
 -----
 - Added support for retrieving market status & time
