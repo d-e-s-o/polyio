@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.9.0
+-----
 - Bumped minimum supported Rust version to `1.44`
 - Replaced `async-tungstenite` dependency with `tokio-tungstenite`
 - Bumped `hyper` dependency to `0.14`
