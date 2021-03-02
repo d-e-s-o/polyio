@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -150,6 +150,7 @@ mod tests {
   #[cfg(not(target_arch = "wasm32"))]
   use test_env_log::test;
 
+  use time_util::parse_system_time_from_date_str;
   use time_util::parse_system_time_from_str;
 
   #[cfg(not(target_arch = "wasm32"))]
@@ -231,8 +232,8 @@ mod tests {
       symbol: "VMW".into(),
       time_span: TimeSpan::Minute,
       multiplier: 5,
-      start_time: parse_system_time_from_str("2017-01-01T00:00:00Z").unwrap(),
-      end_time: parse_system_time_from_str("2017-01-01T00:00:00Z").unwrap(),
+      start_time: parse_system_time_from_date_str("2017-01-01").unwrap(),
+      end_time: parse_system_time_from_date_str("2017-01-01").unwrap(),
     };
 
     let result = client
@@ -254,8 +255,8 @@ mod tests {
       symbol: "AAPL".into(),
       time_span: TimeSpan::Day,
       multiplier: 1,
-      start_time: parse_system_time_from_str("2018-02-01T00:00:00Z").unwrap(),
-      end_time: parse_system_time_from_str("2018-02-28T00:00:00Z").unwrap(),
+      start_time: parse_system_time_from_date_str("2018-02-01").unwrap(),
+      end_time: parse_system_time_from_date_str("2018-02-28").unwrap(),
     };
 
     let aggregates = client
@@ -272,11 +273,11 @@ mod tests {
     assert_eq!(aggregates.len(), 19);
     assert_eq!(
       aggregates.first().unwrap().timestamp,
-      parse_system_time_from_str("2018-02-01T00:00:00Z").unwrap()
+      parse_system_time_from_date_str("2018-02-01").unwrap()
     );
     assert_eq!(
       aggregates.last().unwrap().timestamp,
-      parse_system_time_from_str("2018-02-28T00:00:00Z").unwrap()
+      parse_system_time_from_date_str("2018-02-28").unwrap()
     );
   }
 
@@ -288,8 +289,8 @@ mod tests {
       symbol: "XLK".into(),
       time_span: TimeSpan::Day,
       multiplier: 1,
-      start_time: parse_system_time_from_str("2020-09-07T00:00:00Z").unwrap(),
-      end_time: parse_system_time_from_str("2020-09-08T00:00:00Z").unwrap(),
+      start_time: parse_system_time_from_date_str("2020-09-07").unwrap(),
+      end_time: parse_system_time_from_date_str("2020-09-08").unwrap(),
     };
 
     let aggregates = client
@@ -303,7 +304,7 @@ mod tests {
     assert_eq!(aggregates.len(), 1);
     assert_eq!(
       aggregates.first().unwrap().timestamp,
-      parse_system_time_from_str("2020-09-08T00:00:00Z").unwrap()
+      parse_system_time_from_date_str("2020-09-08").unwrap()
     );
   }
 
@@ -338,8 +339,8 @@ mod tests {
       symbol: "SPY".into(),
       time_span: TimeSpan::Minute,
       multiplier: 5,
-      start_time: parse_system_time_from_str("2020-01-30T00:00:00Z").unwrap(),
-      end_time: parse_system_time_from_str("2020-01-31T00:00:00Z").unwrap(),
+      start_time: parse_system_time_from_date_str("2020-01-30").unwrap(),
+      end_time: parse_system_time_from_date_str("2020-01-31").unwrap(),
     };
 
     let aggregates = client
@@ -364,8 +365,8 @@ mod tests {
       // Note that the Polygon API actually only supports retrieval of
       // data for the entire day. The granularity will still be an hour,
       // though.
-      start_time: parse_system_time_from_str("2018-02-05T00:00:00Z").unwrap(),
-      end_time: parse_system_time_from_str("2018-02-05T00:00:00Z").unwrap(),
+      start_time: parse_system_time_from_date_str("2018-02-05").unwrap(),
+      end_time: parse_system_time_from_date_str("2018-02-05").unwrap(),
     };
 
     let aggregates = client
