@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Renamed `api::market_status::Status` type to `Market`
+
+
 0.9.0
 -----
 - Bumped minimum supported Rust version to `1.44`

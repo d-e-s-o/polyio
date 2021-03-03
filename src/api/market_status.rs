@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -10,12 +10,12 @@ use time_util::system_time_from_str;
 use crate::Str;
 
 
-/// An exchange as returned by the /v1/meta/exchanges endpoint.
+/// An exchange as returned by the /v1/marketstatus/now endpoint.
 ///
-/// Please note that not all fields available in a request are
+/// Please note that not all fields available in a response are
 /// represented here.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct Status {
+pub struct Market {
   /// The status of the market as a whole.
   #[serde(rename = "market")]
   pub status: String,
@@ -29,7 +29,7 @@ Endpoint! {
   /// The representation of a GET request to the /v1/marketstatus/now
   /// endpoint.
   pub Get(()),
-  Ok => Status, [
+  Ok => Market, [
     /// The market status information was retrieved successfully.
     /* 200 */ OK,
   ],
@@ -58,7 +58,7 @@ mod tests {
     const SECS_IN_HOUR: u64 = 60 * 60;
 
     let client = Client::from_env().unwrap();
-    let status = client.issue::<Get>(()).await.unwrap();
+    let market = client.issue::<Get>(()).await.unwrap();
 
     // We want to sanitize the current time being reported at least to a
     // certain degree. For that we assume that our local time is
@@ -67,7 +67,7 @@ mod tests {
     // time (mainly to rule out wrong time zone handling).
     let now = SystemTime::now();
     let hour = Duration::from_secs(SECS_IN_HOUR);
-    assert!(now > status.server_time - hour);
-    assert!(now < status.server_time + hour);
+    assert!(now > market.server_time - hour);
+    assert!(now < market.server_time + hour);
   }
 }
