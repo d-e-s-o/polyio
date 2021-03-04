@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Renamed `api::market_status::Status` type to `Market`
+- Introduced `Status` type representing market status
 
 
 0.9.0

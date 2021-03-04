@@ -10,15 +10,32 @@ use time_util::system_time_from_str;
 use crate::Str;
 
 
+/// The market status.
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq)]
+pub enum Status {
+  /// The market is currently open.
+  #[serde(rename = "open")]
+  Open,
+  /// The market is currently closed.
+  #[serde(rename = "closed")]
+  Closed,
+  /// Any other status that we have not accounted for.
+  ///
+  /// Note that having any such status should be considered a bug.
+  #[serde(other)]
+  Unknown,
+}
+
+
 /// An exchange as returned by the /v1/marketstatus/now endpoint.
 ///
 /// Please note that not all fields available in a response are
 /// represented here.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq)]
 pub struct Market {
   /// The status of the market as a whole.
   #[serde(rename = "market")]
-  pub status: String,
+  pub status: Status,
   /// The time the news item was published.
   #[serde(rename = "serverTime", deserialize_with = "system_time_from_str")]
   pub server_time: SystemTime,
