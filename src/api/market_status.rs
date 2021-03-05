@@ -1,13 +1,41 @@
 // Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::convert::TryFrom as _;
+use std::time::Duration;
 use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
+use chrono::DateTime;
+
+use serde::de::Deserializer;
+use serde::de::Error;
+use serde::de::Unexpected;
 use serde::Deserialize;
 
-use time_util::system_time_from_str;
-
 use crate::Str;
+
+
+/// Deserialize a time stamp as a "naive local" `SystemTime`, i.e., one
+/// which just drops any time zone offsets.
+fn server_time<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let time = String::deserialize(deserializer)?;
+  DateTime::parse_from_str(&time, "%Y-%m-%dT%H:%M:%S%z")
+    .map_err(|_| Error::invalid_value(Unexpected::Str(&time), &"a date time string"))
+    .and_then(|time| {
+      u64::try_from(time.naive_local().timestamp())
+        .map(|seconds| UNIX_EPOCH + Duration::from_secs(seconds))
+        .map_err(|_| {
+          Error::custom(format!(
+            "seconds in {} could not be converted to unsigned value",
+            time
+          ))
+        })
+    })
+}
 
 
 /// The market status.
@@ -37,7 +65,7 @@ pub struct Market {
   #[serde(rename = "market")]
   pub status: Status,
   /// The time the news item was published.
-  #[serde(rename = "serverTime", deserialize_with = "system_time_from_str")]
+  #[serde(rename = "serverTime", deserialize_with = "server_time")]
   pub server_time: SystemTime,
 }
 
@@ -63,7 +91,8 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use std::time::Duration;
+  use chrono::naive::NaiveTime;
+  use chrono::offset::Utc;
 
   use test_env_log::test;
 
@@ -72,19 +101,21 @@ mod tests {
 
   #[test(tokio::test)]
   async fn request_market_status() {
-    const SECS_IN_HOUR: u64 = 60 * 60;
-
     let client = Client::from_env().unwrap();
     let market = client.issue::<Get>(()).await.unwrap();
+    let market_time = DateTime::<Utc>::from(market.server_time)
+      .naive_local()
+      .time();
 
-    // We want to sanitize the current time being reported at least to a
-    // certain degree. For that we assume that our local time is
-    // somewhat synchronized to "real" time and are asserting that the
-    // current time reported by Polygon is within one hour of our local
-    // time (mainly to rule out wrong time zone handling).
-    let now = SystemTime::now();
-    let hour = Duration::from_secs(SECS_IN_HOUR);
-    assert!(now > market.server_time - hour);
-    assert!(now < market.server_time + hour);
+    let open = NaiveTime::from_hms(9, 30, 0);
+    let close = NaiveTime::from_hms(16, 00, 0);
+
+    // We only make a statement when the market is open. It could be
+    // closed for various reasons and sometimes trading days are just
+    // short. We have never seen an overly long one, though.
+    if market.status == Status::Open {
+      assert!(market_time >= open);
+      assert!(market_time < close);
+    }
   }
 }
