@@ -3,6 +3,7 @@ Unreleased
 - Renamed `api::market_status::Status` type to `Market`
 - Introduced `Status` type representing market status
 - Fixed parsing of market time to assume server-local time
+- Bumped minimum supported Rust version to `1.46`
 
 
 0.9.0
