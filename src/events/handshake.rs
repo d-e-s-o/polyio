@@ -66,7 +66,7 @@ where
 }
 
 /// Create a request to subscribe to events for certain assets.
-fn make_subscribe_request<I>(subscriptions: I) -> Result<(Request, usize), WebSocketError>
+fn make_subscribe_request<I>(subscriptions: I) -> Result<(Request, usize), Error>
 where
   I: IntoIterator<Item = Subscription>,
 {
@@ -74,8 +74,7 @@ where
   let first = iter
     .next()
     .ok_or_else(|| {
-      let err = "failed to subscribe to event stream: no subscriptions supplied";
-      WebSocketError::Protocol(err.into())
+      Error::Str("failed to subscribe to event stream: no subscriptions supplied".into())
     })?
     .to_string();
 
@@ -92,7 +91,7 @@ where
 
 
 /// Subscribe to the given subscriptions.
-async fn subscribe_stocks<S, I>(stream: &mut S, subscriptions: I) -> Result<usize, WebSocketError>
+async fn subscribe_stocks<S, I>(stream: &mut S, subscriptions: I) -> Result<usize, Error>
 where
   S: Sink<WebSocketMsg, Error = WebSocketError> + Unpin,
   I: IntoIterator<Item = Subscription>,

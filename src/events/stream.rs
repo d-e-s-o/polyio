@@ -252,8 +252,7 @@ fn process_message(message: Message) -> Option<Result<Event, WebSocketError>> {
   let event = match message {
     Message::Status(status) => {
       if status.code == Code::Disconnected {
-        let err = format!("Polygon disconnected client: {}", status.message);
-        return Some(Err(WebSocketError::Protocol(err.into())))
+        return Some(Err(WebSocketError::AlreadyClosed))
       } else {
         return None
       }

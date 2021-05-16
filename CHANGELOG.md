@@ -4,6 +4,8 @@ Unreleased
 - Introduced `Status` type representing market status
 - Fixed parsing of market time to assume server-local time
 - Bumped minimum supported Rust version to `1.46`
+- Bumped `tokio-tungstenite` dependency to 0.14
+- Bumped `websocket-util` dependency to `0.8`
 
 
 0.9.0
