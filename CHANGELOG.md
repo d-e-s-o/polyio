@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.10.0
+------
 - Renamed `api::market_status::Status` type to `Market`
 - Introduced `Status` type representing market status
 - Added support for handling delayed data
