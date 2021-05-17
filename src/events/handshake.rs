@@ -124,7 +124,7 @@ fn check_responses(
   mut count: usize,
   operation: &str,
 ) -> Result<usize, Error> {
-  debug_assert!(count > 0, count);
+  debug_assert!(count > 0, "{}", count);
 
   let messages = from_json::<Messages>(msg)?;
   for message in messages {

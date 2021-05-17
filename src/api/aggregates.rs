@@ -176,6 +176,7 @@ mod tests {
     );
     assert!(
       (aggregate.volume - 31_315_282f64).abs() <= EPSILON,
+      "{}",
       aggregate.volume
     );
     assert_eq!(aggregate.open_price, Num::new(10287, 100));
@@ -220,6 +221,7 @@ mod tests {
     let aggregate = aggregates.remove(0);
     assert!(
       (aggregate.volume - 31_315_282f64).abs() <= EPSILON,
+      "{}",
       aggregate.volume
     );
   }

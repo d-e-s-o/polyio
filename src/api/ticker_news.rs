@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -94,10 +94,10 @@ mod tests {
     };
 
     let news = client.issue::<Get>(req).await.unwrap();
-    assert!(!news.is_empty(), news);
+    assert!(!news.is_empty(), "{:?}", news);
 
     for item in news {
-      assert!(item.symbols.contains(&"AAPL".to_string()), item);
+      assert!(item.symbols.contains(&"AAPL".to_string()), "{:?}", item);
     }
   }
 }
