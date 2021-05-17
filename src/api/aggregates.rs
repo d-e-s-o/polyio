@@ -434,4 +434,27 @@ mod tests {
       parse_system_time_from_str("2018-02-05T19:00:00Z").unwrap()
     );
   }
+
+  /// Test that we can properly handle a response containing potentially
+  /// "delayed" data.
+  #[cfg(not(target_arch = "wasm32"))]
+  #[test(tokio::test)]
+  async fn todays_data() {
+    let client = Client::from_env().unwrap();
+    let today = SystemTime::now();
+    let request = AggregateReq {
+      symbol: "SPY".into(),
+      time_span: TimeSpan::Hour,
+      multiplier: 1,
+      start_time: today,
+      end_time: today + Duration::from_secs(24 * 60 * 60),
+    };
+
+    let _aggregates = client
+      .issue::<Get>(request)
+      .await
+      .unwrap()
+      .into_result()
+      .unwrap();
+  }
 }

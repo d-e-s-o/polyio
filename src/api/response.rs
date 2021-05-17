@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -27,7 +27,9 @@ impl<T> Response<T> {
   /// Convert a `Response` into a `Result`.
   pub fn into_result(self) -> Result<T, ResponseError> {
     match self.status.as_ref() {
-      "OK" => Ok(self.result),
+      // On the free trier data for the current day may be delayed. We
+      // just handle that transparently and like a success.
+      "OK" | "DELAYED" => Ok(self.result),
       _ => Err(ResponseError(self.status)),
     }
   }
@@ -48,6 +50,19 @@ mod tests {
 
     assert_eq!(response.into_result().unwrap(), 42);
   }
+
+
+  /// Check that we can handle a "delayed" response correctly.
+  #[test]
+  fn delayed() {
+    let response = Response {
+      status: "DELAYED".into(),
+      result: "foobar",
+    };
+
+    assert_eq!(response.into_result().unwrap(), "foobar");
+  }
+
 
   #[test]
   fn error() {

@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Renamed `api::market_status::Status` type to `Market`
 - Introduced `Status` type representing market status
+- Added support for handling delayed data
 - Fixed parsing of market time to assume server-local time
 - Bumped minimum supported Rust version to `1.46`
 - Bumped `tokio-tungstenite` dependency to 0.14
