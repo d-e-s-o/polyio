@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Updated `num-decimal` to use version `0.4` of the `num-*` crates
+
+
 0.10.0
 ------
 - Renamed `api::market_status::Status` type to `Market`
