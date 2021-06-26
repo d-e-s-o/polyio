@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Display;
@@ -36,6 +36,9 @@ macro_rules! Endpoint {
       Err => $err, [
         /// Authentication failed for the request.
         /* 401 */ UNAUTHORIZED => AuthenticationFailed,
+        /// The rate limit was exceeded, causing the request to be
+        /// denied.
+        /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
         $($(#[$err_docs])* $err_status => $variant,)*
       ],
       ApiErr => crate::endpoint::ErrorMessage,
