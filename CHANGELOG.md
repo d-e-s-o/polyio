@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.11.0
+------
 - Added `RateLimitExceeded` error variant to all endpoint errors
 - Updated `num-decimal` to use version `0.4` of the `num-*` crates
 
