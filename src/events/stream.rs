@@ -377,7 +377,7 @@ mod tests {
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use time_util::parse_system_time_from_str;
 

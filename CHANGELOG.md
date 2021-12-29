@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Switched from using `test-env-log` to `test-log`
+
+
 0.11.0
 ------
 - Added `RateLimitExceeded` error variant to all endpoint errors

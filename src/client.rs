@@ -345,7 +345,7 @@ mod tests {
   use maplit::hashset;
 
   #[cfg(not(target_arch = "wasm32"))]
-  use test_env_log::test;
+  use test_log::test;
 
 
   #[test]

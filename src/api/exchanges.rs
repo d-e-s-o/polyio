@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -53,7 +53,7 @@ mod tests {
   use serde_json::from_str as from_json;
 
   #[cfg(not(target_arch = "wasm32"))]
-  use test_env_log::test;
+  use test_log::test;
 
   #[cfg(not(target_arch = "wasm32"))]
   use crate::Client;

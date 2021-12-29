@@ -148,7 +148,7 @@ mod tests {
   use serde_json::to_string as to_json;
 
   #[cfg(not(target_arch = "wasm32"))]
-  use test_env_log::test;
+  use test_log::test;
 
   use time_util::parse_system_time_from_date_str;
   use time_util::parse_system_time_from_str;

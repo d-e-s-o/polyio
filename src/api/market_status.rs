@@ -94,7 +94,7 @@ mod tests {
   use chrono::naive::NaiveTime;
   use chrono::offset::Utc;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::Client;
 

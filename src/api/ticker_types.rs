@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
@@ -43,7 +43,7 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::Client;
 
