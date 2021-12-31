@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 mod response;
@@ -19,8 +19,6 @@ pub mod ticker;
 pub mod ticker_news;
 /// Definitions for retrieving the available ticker types.
 pub mod ticker_types;
-/// Definitions pertaining the available tickers.
-pub mod tickers;
 
 /// A response type used in certain API calls.
 pub use response::Response;

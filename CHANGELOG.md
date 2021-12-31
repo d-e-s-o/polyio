@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Removed `api::tickers` module
 - Switched from using `test-env-log` to `test-log`
 
 
