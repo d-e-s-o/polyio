@@ -15,8 +15,6 @@ pub mod market_status;
 pub mod markets;
 /// Definitions pertaining a ticker.
 pub mod ticker;
-/// Definitions for retrieving the news related to a ticker.
-pub mod ticker_news;
 /// Definitions for retrieving the available ticker types.
 pub mod ticker_types;
 
