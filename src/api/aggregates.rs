@@ -257,8 +257,8 @@ mod tests {
       symbol: "AAPL".into(),
       time_span: TimeSpan::Day,
       multiplier: 1,
-      start_time: parse_system_time_from_date_str("2018-02-01").unwrap(),
-      end_time: parse_system_time_from_date_str("2018-02-28").unwrap(),
+      start_time: parse_system_time_from_date_str("2021-11-01").unwrap(),
+      end_time: parse_system_time_from_date_str("2021-11-30").unwrap(),
     };
 
     let aggregates = client
@@ -269,17 +269,15 @@ mod tests {
       .unwrap()
       .unwrap();
 
-    // The number of trading days was inferred to be 19. There was
-    // president's day on Feb 19th and all other days were regular work
-    // days.
-    assert_eq!(aggregates.len(), 19);
+    // The number of trading days was inferred to be 21.
+    assert_eq!(aggregates.len(), 21);
     assert_eq!(
       aggregates.first().unwrap().timestamp,
-      parse_system_time_from_date_str("2018-02-01").unwrap()
+      parse_system_time_from_date_str("2021-11-01").unwrap()
     );
     assert_eq!(
       aggregates.last().unwrap().timestamp,
-      parse_system_time_from_date_str("2018-02-28").unwrap()
+      parse_system_time_from_date_str("2021-11-30").unwrap()
     );
   }
 
@@ -341,8 +339,8 @@ mod tests {
       symbol: "SPY".into(),
       time_span: TimeSpan::Minute,
       multiplier: 5,
-      start_time: parse_system_time_from_date_str("2020-01-30").unwrap(),
-      end_time: parse_system_time_from_date_str("2020-01-31").unwrap(),
+      start_time: parse_system_time_from_date_str("2021-12-01").unwrap(),
+      end_time: parse_system_time_from_date_str("2021-12-02").unwrap(),
     };
 
     let aggregates = client
@@ -353,7 +351,7 @@ mod tests {
       .unwrap()
       .unwrap();
 
-    assert_eq!(aggregates.len(), 383);
+    assert_eq!(aggregates.len(), 384);
   }
 
   #[cfg(not(target_arch = "wasm32"))]
@@ -367,8 +365,8 @@ mod tests {
       // Note that the Polygon API actually only supports retrieval of
       // data for the entire day. The granularity will still be an hour,
       // though.
-      start_time: parse_system_time_from_date_str("2018-02-05").unwrap(),
-      end_time: parse_system_time_from_date_str("2018-02-05").unwrap(),
+      start_time: parse_system_time_from_date_str("2021-12-06").unwrap(),
+      end_time: parse_system_time_from_date_str("2021-12-06").unwrap(),
     };
 
     let aggregates = client
@@ -379,59 +377,67 @@ mod tests {
       .unwrap()
       .unwrap();
 
-    // We expect 13 aggregates for the hours 7:00 to 19:00 (both inclusive).
-    assert_eq!(aggregates.len(), 13);
+    // We expect 15 aggregates for the hours 4:00 to 19:00 (both inclusive).
+    assert_eq!(aggregates.len(), 15);
     assert_eq!(
       aggregates[0].timestamp,
-      parse_system_time_from_str("2018-02-05T07:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T04:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[1].timestamp,
-      parse_system_time_from_str("2018-02-05T08:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T05:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[2].timestamp,
-      parse_system_time_from_str("2018-02-05T09:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T06:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[3].timestamp,
-      parse_system_time_from_str("2018-02-05T10:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T07:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[4].timestamp,
-      parse_system_time_from_str("2018-02-05T11:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T08:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[5].timestamp,
-      parse_system_time_from_str("2018-02-05T12:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T09:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[6].timestamp,
-      parse_system_time_from_str("2018-02-05T13:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T10:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[7].timestamp,
-      parse_system_time_from_str("2018-02-05T14:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T11:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[8].timestamp,
-      parse_system_time_from_str("2018-02-05T15:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T12:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[9].timestamp,
-      parse_system_time_from_str("2018-02-05T16:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T13:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[10].timestamp,
-      parse_system_time_from_str("2018-02-05T17:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T14:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[11].timestamp,
-      parse_system_time_from_str("2018-02-05T18:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T15:00:00Z").unwrap()
     );
     assert_eq!(
       aggregates[12].timestamp,
-      parse_system_time_from_str("2018-02-05T19:00:00Z").unwrap()
+      parse_system_time_from_str("2021-12-06T16:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[13].timestamp,
+      parse_system_time_from_str("2021-12-06T18:00:00Z").unwrap()
+    );
+    assert_eq!(
+      aggregates[14].timestamp,
+      parse_system_time_from_str("2021-12-06T19:00:00Z").unwrap()
     );
   }
 
