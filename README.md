@@ -1,7 +1,7 @@
 [![pipeline](https://gitlab.com/d-e-s-o/polyio/badges/master/pipeline.svg)](https://gitlab.com/d-e-s-o/polyio/commits/master)
 [![crates.io](https://img.shields.io/crates/v/polyio.svg)](https://crates.io/crates/polyio)
 [![Docs](https://docs.rs/polyio/badge.svg)](https://docs.rs/polyio)
-[![rustc](https://img.shields.io/badge/rustc-1.46+-blue.svg)](https://blog.rust-lang.org/2020/08/27/Rust-1.46.0.html)
+[![rustc](https://img.shields.io/badge/rustc-1.51+-blue.svg)](https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html)
 
 polyio
 ======

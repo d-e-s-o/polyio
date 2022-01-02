@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Removed `api::tickers` and `api::ticker_news` module
 - Switched from using `test-env-log` to `test-log`
+- Bumped minimum supported Rust version to `1.51`
 
 
 0.11.0
