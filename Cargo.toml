@@ -37,8 +37,8 @@ url = "2.0"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 hyper = {version = "0.14", default-features = false, features = ["client", "http1"]}
 hyper-tls = {version = "0.5", default-features = false}
-tungstenite = {package = "tokio-tungstenite", version = "0.14", features = ["connect", "native-tls"]}
-websocket-util = "0.8"
+tungstenite = {package = "tokio-tungstenite", version = "0.16", features = ["connect", "native-tls"]}
+websocket-util = "0.9"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = {version = "0.3", default-features = false}
@@ -64,4 +64,4 @@ maplit = {version = "1.0", default-features = false}
 test-log = {version = "0.2.8", default-features = false, features = ["trace"]}
 tokio = {version = "1.0", default-features = false, features = ["rt", "macros"]}
 tracing-subscriber = {version = "0.2", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
-websocket-util = {version = "0.8", features = ["test"]}
+websocket-util = {version = "0.9", features = ["test"]}
