@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::HashSet;
@@ -88,8 +88,8 @@ where
   E: Endpoint,
 {
   let mut url = api_info.api_url.clone();
-  url.set_path(&E::path(&input));
-  url.set_query(E::query(&input).as_ref().map(AsRef::as_ref));
+  url.set_path(&E::path(input));
+  url.set_query(E::query(input).as_ref().map(AsRef::as_ref));
   url
     .query_pairs_mut()
     .append_pair(API_KEY_PARAM, &api_info.api_key);
@@ -142,7 +142,7 @@ mod hype {
   where
     E: Endpoint,
   {
-    let req = request::<E>(&api_info, &input).map_err(RequestError::Endpoint)?;
+    let req = request::<E>(api_info, &input).map_err(RequestError::Endpoint)?;
     let span = span!(
       Level::DEBUG,
       "request",

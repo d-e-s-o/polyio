@@ -96,7 +96,7 @@ mod tests {
   }
 ]"#;
 
-    let exchgs = from_json::<Vec<Exchange>>(&response).unwrap();
+    let exchgs = from_json::<Vec<Exchange>>(response).unwrap();
     assert_eq!(exchgs.len(), 4);
     assert_eq!(exchgs[0].id, 1);
     assert_eq!(exchgs[0].type_, "exchange");

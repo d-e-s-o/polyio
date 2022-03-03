@@ -427,7 +427,7 @@ mod tests {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
       api_url: Url::parse("http://example.com").unwrap(),
-      stream_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
+      stream_url: Url::parse(&format!("ws://{}", addr)).unwrap(),
       api_key: API_KEY.to_string(),
     };
 
@@ -447,7 +447,7 @@ mod tests {
       "t": 1583527402638,
       "z": 2
     }"#;
-    let trade = from_json::<Trade>(&response).unwrap();
+    let trade = from_json::<Trade>(response).unwrap();
     assert_eq!(trade.symbol, "SPY");
     assert_eq!(trade.exchange, 19);
     assert_eq!(trade.price, Num::new(29367, 100));
@@ -477,7 +477,7 @@ mod tests {
       "t": 1583527004684,
       "z": 2
     }"#;
-    let quote = from_json::<Quote>(&response).unwrap();
+    let quote = from_json::<Quote>(response).unwrap();
     assert_eq!(quote.symbol, "SPY");
     assert_eq!(quote.bid_exchange, 12);
     assert_eq!(quote.bid_price, Num::new(29431, 100));
@@ -513,7 +513,7 @@ mod tests {
       "e": 1583527402000
     }"#;
 
-    let aggregate = from_json::<Aggregate>(&response).unwrap();
+    let aggregate = from_json::<Aggregate>(response).unwrap();
     assert_eq!(aggregate.symbol, "SPY");
     assert_eq!(aggregate.volume, 2287);
     assert_eq!(
@@ -556,7 +556,7 @@ mod tests {
       "e": 1536036818784
     }"#;
 
-    let event = from_json::<Event>(&response).unwrap();
+    let event = from_json::<Event>(response).unwrap();
     match event {
       Event::MinuteAggregate(aggregate) => {
         assert_eq!(aggregate.symbol, "MSFT");
@@ -574,7 +574,7 @@ mod tests {
        "ap":59.89,"bs":28,"as":65,"t":1577724127207,"z":2}
     ]"#;
 
-    let messages = from_json::<Messages>(&response).unwrap();
+    let messages = from_json::<Messages>(response).unwrap();
     assert_eq!(messages.len(), 2);
     match &messages[0] {
       Message::Quote(Quote { symbol, .. }) if symbol == "XLE" => (),
