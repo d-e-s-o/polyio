@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped minimum supported Rust version to `1.53`
+
+
 0.12.0
 ------
 - Removed `api::tickers` and `api::ticker_news` module
