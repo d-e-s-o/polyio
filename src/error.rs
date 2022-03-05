@@ -1,7 +1,6 @@
-// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::error::Error as StdError;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
@@ -30,10 +29,7 @@ use crate::Str;
 
 /// An error encountered while issuing a request.
 #[derive(Debug, ThisError)]
-pub enum RequestError<E>
-where
-  E: StdError + 'static,
-{
+pub enum RequestError<E> {
   /// An endpoint reported error.
   #[error("the endpoint reported an error")]
   Endpoint(#[source] E),
@@ -86,10 +82,7 @@ impl Display for HttpBody {
 }
 
 #[cfg(target_arch = "wasm32")]
-impl<E> From<JsValue> for RequestError<E>
-where
-  E: StdError + 'static,
-{
+impl<E> From<JsValue> for RequestError<E> {
   fn from(e: JsValue) -> Self {
     match e.as_string() {
       Some(s) => Self::JavaScript(s),
@@ -151,6 +144,7 @@ impl From<EndpointError> for Error {
 mod tests {
   use super::*;
 
+  use std::error::Error as _;
   use std::str::Utf8Error;
 
 
@@ -184,7 +178,7 @@ mod tests {
   fn ensure_request_error_trait_impls() {
     fn check<E>(_: E)
     where
-      E: StdError + Send + Sync + 'static,
+      E: Send + Sync,
     {
     }
 
