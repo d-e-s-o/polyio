@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -14,23 +14,28 @@ pub struct ResponseError(pub String);
 
 /// The response as returned by various endpoints.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-pub struct Response<T> {
-  /// The status message associated with this response.
-  #[serde(rename = "status")]
-  status: String,
-  /// The actual result.
-  #[serde(rename = "results")]
-  result: T,
+#[serde(tag = "status", content = "results")]
+pub enum Response<T> {
+  /// The request was successful and all results were retrieved.
+  #[serde(rename = "OK")]
+  Ok(T),
+  /// The response contains data that was delayed and does not contain
+  /// the most recent data points.
+  #[serde(rename = "DELAYED")]
+  Delayed(T),
+  /// An error occurred or unexpected status was reported.
+  #[serde(other)]
+  Err,
 }
 
 impl<T> Response<T> {
   /// Convert a `Response` into a `Result`.
+  ///
+  /// Both `Ok` and `Delayed` variants are treated as success.
   pub fn into_result(self) -> Result<T, ResponseError> {
-    match self.status.as_ref() {
-      // On the free trier data for the current day may be delayed. We
-      // just handle that transparently and like a success.
-      "OK" | "DELAYED" => Ok(self.result),
-      _ => Err(ResponseError(self.status)),
+    match self {
+      Self::Ok(data) | Self::Delayed(data) => Ok(data),
+      Self::Err => Err(ResponseError("an unexpected status was reported".into())),
     }
   }
 }
@@ -40,39 +45,28 @@ impl<T> Response<T> {
 mod tests {
   use super::*;
 
+  use serde_json::from_str as from_json;
 
+
+  /// Check that we can decode an Ok response.
   #[test]
-  fn success() {
-    let response = Response {
-      status: "OK".into(),
-      result: 42,
-    };
-
-    assert_eq!(response.into_result().unwrap(), 42);
+  fn decode_ok() {
+    let json = r#"{"status":"OK","results":["abc"]}"#;
+    let response = from_json::<Response<Vec<String>>>(json).unwrap();
+    match response {
+      Response::Ok(data) if data.as_slice() == ["abc"] => (),
+      _ => panic!("unexpected result"),
+    }
   }
 
-
-  /// Check that we can handle a "delayed" response correctly.
+  /// Check that we can decode a delayed response.
   #[test]
-  fn delayed() {
-    let response = Response {
-      status: "DELAYED".into(),
-      result: "foobar",
-    };
-
-    assert_eq!(response.into_result().unwrap(), "foobar");
-  }
-
-
-  #[test]
-  fn error() {
-    let response = Response {
-      status: "ERR".into(),
-      result: (),
-    };
-
-    let err = response.into_result().unwrap_err();
-    assert_eq!(err, ResponseError("ERR".into()));
-    assert_eq!(&err.to_string(), "response did not indicate success: ERR");
+  fn decode_delayed() {
+    let json = r#"{"status":"DELAYED","results":["abc"]}"#;
+    let response = from_json::<Response<Vec<String>>>(json).unwrap();
+    match response {
+      Response::Delayed(data) if data.as_slice() == ["abc"] => (),
+      _ => panic!("unexpected result"),
+    }
   }
 }

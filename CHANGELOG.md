@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Converted `api::Response` type into an `enum`
 - Bumped `http-endpoint` dependency to `0.5`
 
 
