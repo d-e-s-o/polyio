@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `http-endpoint` dependency to `0.5`
+
+
 0.12.0
 ------
 - Removed `api::tickers` and `api::ticker_news` module
