@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fmt::Debug;
 
@@ -83,18 +84,18 @@ where
 
 
 /// Build the URL for a request to the provided endpoint.
-fn url<E>(api_info: &ApiInfo, input: &E::Input) -> Url
+fn url<E>(api_info: &ApiInfo, input: &E::Input) -> Result<Url, E::Error>
 where
   E: Endpoint,
 {
   let mut url = api_info.api_url.clone();
   url.set_path(&E::path(input));
-  url.set_query(E::query(input).as_ref().map(AsRef::as_ref));
+  url.set_query(E::query(input)?.as_ref().map(AsRef::as_ref));
   url
     .query_pairs_mut()
     .append_pair(API_KEY_PARAM, &api_info.api_key);
 
-  url
+  Ok(url)
 }
 
 
@@ -124,11 +125,14 @@ mod hype {
   where
     E: Endpoint,
   {
-    let url = url::<E>(api_info, input);
+    let url = url::<E>(api_info, input)?;
     let request = HttpRequestBuilder::new()
       .method(E::method())
       .uri(url.as_str())
-      .body(Body::from(E::body(input)?))?;
+      .body(Body::from(
+        E::body(input)?.unwrap_or_else(|| Cow::Borrowed(&[0; 0])),
+      ))?;
+
 
     Ok(request)
   }
@@ -205,7 +209,7 @@ mod wasm {
   where
     E: Endpoint,
   {
-    let url = url::<E>(api_info, input);
+    let url = url::<E>(api_info, input).map_err(RequestError::Endpoint)?;
     let body = E::body(input)
       .map_err(E::Error::from)
       .map_err(RequestError::Endpoint)?;
@@ -214,10 +218,12 @@ mod wasm {
     opts.mode(RequestMode::Cors);
     opts.method(E::method().as_str());
 
-    // And then check how *exactly* to retrieve the cause.
-    if !body.is_empty() {
-      let body = String::from_utf8(body.into_owned())?;
-      opts.body(Some(&JsValue::from(body)));
+    match body {
+      Some(body) if !body.is_empty() => {
+        let body = String::from_utf8(body.into_owned())?;
+        opts.body(Some(&JsValue::from(body)));
+      },
+      _ => (),
     }
 
     let request = Request::new_with_str_and_init(url.as_str(), &opts)?;

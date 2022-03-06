@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Bumped minimum supported Rust version to `1.53`
+- Bumped `http-endpoint` dependency to `0.5`
 
 
 0.12.0
