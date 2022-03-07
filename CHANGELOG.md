@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Converted `api::Response` type into an `enum`
 - Bumped minimum supported Rust version to `1.53`
 - Bumped `http-endpoint` dependency to `0.5`
 
