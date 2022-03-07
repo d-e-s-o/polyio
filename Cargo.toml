@@ -19,9 +19,10 @@ description = """
 A create for interacting with the Polygon API at polygon.io.
 """
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
+resolver = "2"
 
 [dependencies]
-chrono = {version = "0.4", default-features = false, features = ["serde"]}
+chrono = {version = "0.4", default-features = false, features = ["serde", "std"]}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"

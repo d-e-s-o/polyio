@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Fixed potential build failure when used from edition 2021 crates
+
+
 0.13.0
 ------
 - Migrated usage of `SystemTime` date times to `chrono` types
