@@ -2,7 +2,7 @@
 name = "polyio"
 version = "0.13.0"
 authors = ["Daniel Mueller <deso@posteo.net>"]
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0-or-later"
 homepage = "https://github.com/d-e-s-o/polyio"
 repository = "https://github.com/d-e-s-o/polyio.git"
@@ -21,7 +21,7 @@ A create for interacting with the Polygon API at polygon.io.
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [dependencies]
-chrono = {version = "0.4", default-features = false, features = ["serde"]}
+chrono = {version = "0.4", default-features = false, features = ["serde", "alloc"]}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
