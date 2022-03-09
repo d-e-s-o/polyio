@@ -1,10 +1,9 @@
-// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
 
 use futures::stream::unfold;
-use futures::FutureExt;
 use futures::Stream;
 use futures::StreamExt;
 
@@ -12,7 +11,8 @@ use num_decimal::Num;
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::from_slice as from_json;
+use serde_json::from_slice as from_json_slice;
+use serde_json::from_str as from_json_str;
 use serde_json::Error as JsonError;
 
 use time_util::system_time_from_millis_in_new_york;
@@ -23,8 +23,9 @@ use tracing::trace;
 
 use tungstenite::connect_async;
 
-use websocket_util::stream as do_stream;
 use websocket_util::tungstenite::Error as WebSocketError;
+use websocket_util::wrap::Message as WebSocketMessage;
+use websocket_util::wrap::Wrapper;
 
 use crate::api_info::ApiInfo;
 use crate::error::Error;
@@ -347,9 +348,12 @@ where
   handshake(&mut stream, api_key, subscriptions).await?;
   debug!("subscription successful");
 
-  let stream = do_stream(stream)
-    .map(|stream| stream.map(|result| result.map(|data| from_json::<Messages>(&data))))
-    .await;
+  let stream = Wrapper::builder().build(stream).map(|result| {
+    result.map(|message| match message {
+      WebSocketMessage::Text(string) => from_json_str::<Messages>(&string),
+      WebSocketMessage::Binary(data) => from_json_slice::<Messages>(&data),
+    })
+  });
   let stream = Box::pin(stream);
   let stream = unfold(
     (false, (stream, Vec::new())),
