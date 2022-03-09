@@ -10,7 +10,9 @@ polyio
 - [Changelog](CHANGELOG.md)
 
 **polyio** is a library for interacting with the Polygon API at
-[polygon.io][].
+[polygon.io][]. Among others, the crate powers the [`polycli`][polycli]
+command line tool.
 
 [docs-rs]: https://docs.rs/crate/polyio
+[polycli]: https://crates.io/crates/polycli
 [polygon.io]: https://polygon.io/
