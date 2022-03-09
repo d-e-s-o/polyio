@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -7,7 +7,7 @@ use crate::api::response::Response;
 use crate::Str;
 
 
-/// A locale as returned by the /v2/reference/locales endpoint.
+/// A locale as returned by the `/v2/reference/locales` endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Locale {
   /// The locale.
@@ -20,7 +20,8 @@ pub struct Locale {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/reference/locales endpoint.
+  /// The representation of a GET request to the `/v2/reference/locales`
+  /// endpoint.
   pub Get(()),
   Ok => Response<Vec<Locale>>, [
     /// The locales information was retrieved successfully.

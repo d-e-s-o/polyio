@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -47,7 +47,8 @@ pub enum Type {
 }
 
 
-/// A ticker as returned by the /v2/reference/tickers/<ticker> endpoint.
+/// A ticker as returned by the `/v2/reference/tickers/<ticker>`
+/// endpoint.
 ///
 /// Please note that not all fields available in a request are
 /// represented here.
@@ -77,7 +78,8 @@ pub struct Ticker {
 }
 
 
-/// A ticker as returned by the /v2/reference/tickers/<ticker> endpoint.
+/// A ticker as returned by the `/v2/reference/tickers/<ticker>`
+/// endpoint.
 ///
 /// Please note that not all fields available in a request are
 /// represented here.
@@ -90,7 +92,8 @@ pub struct TickerResp {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/reference/tickers/<ticker> endpoint.
+  /// The representation of a GET request to the
+  /// `/v2/reference/tickers/<ticker>` endpoint.
   pub Get(String),
   Ok => Response<TickerResp>, [
     /// The ticker information was retrieved successfully.

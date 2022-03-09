@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::convert::TryFrom as _;
@@ -55,7 +55,8 @@ pub enum Status {
 }
 
 
-/// An exchange as returned by the /v1/marketstatus/now endpoint.
+/// The market status as returned by the `/v1/marketstatus/now`
+/// endpoint.
 ///
 /// Please note that not all fields available in a response are
 /// represented here.
@@ -71,7 +72,7 @@ pub struct Market {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v1/marketstatus/now
+  /// The representation of a GET request to the `/v1/marketstatus/now`
   /// endpoint.
   pub Get(()),
   Ok => Market, [
