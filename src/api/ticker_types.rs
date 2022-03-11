@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
@@ -24,7 +24,8 @@ pub struct TickerTypes {
 }
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/reference/types endpoint.
+  /// The representation of a GET request to the `/v2/reference/types`
+  /// endpoint.
   pub Get(()),
   Ok => Response<TickerTypes>, [
     /// The ticker types were retrieved successfully.

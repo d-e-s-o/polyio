@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -6,7 +6,7 @@ use serde::Deserialize;
 use crate::Str;
 
 
-/// An exchange as returned by the /v1/meta/exchanges endpoint.
+/// An exchange as returned by the `/v1/meta/exchanges` endpoint.
 ///
 /// Please note that not all fields available in a request are
 /// represented here.
@@ -32,7 +32,7 @@ pub struct Exchange {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v1/meta/exchanges endpoint.
+  /// The representation of a GET request to the `/v1/meta/exchanges` endpoint.
   pub Get(()),
   Ok => Vec<Exchange>, [
     /// The exchanges information was retrieved successfully.

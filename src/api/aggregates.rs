@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -62,7 +62,7 @@ impl AsRef<str> for TimeSpan {
 
 
 /// A GET request to be made to the
-/// /v2/aggs/ticker/<symbol>/range/1/<span>/<start>/<end> endpoint.
+/// `/v2/aggs/ticker/<symbol>/range/1/<span>/<start>/<end>` endpoint.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AggregateReq {
   /// The ticker symbol to request aggregated data for.
@@ -82,7 +82,7 @@ pub struct AggregateReq {
 
 
 /// A ticker as returned by the
-/// /v2/aggs/ticker/<symbol>/range/1/<span>/<start>/<end> endpoint.
+/// `/v2/aggs/ticker/<symbol>/range/1/<span>/<start>/<end>` endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Aggregate {
   /// The aggregate's timestamp.
@@ -116,7 +116,7 @@ type GetResponse = Response<Option<Vec<Aggregate>>>;
 
 Endpoint! {
   /// The representation of a GET request to the
-  /// /v2/aggs/ticker/<symbol>/range/<multiplier>/<span>/<start>/<end> endpoint.
+  /// `/v2/aggs/ticker/<symbol>/range/<multiplier>/<span>/<start>/<end>` endpoint.
   pub Get(AggregateReq),
   Ok => GetResponse, [
     /// The ticker information was retrieved successfully.
