@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Converted `api::Response` type into an `enum`
+- Removed serialization support from event and aggregate data types
 - Bumped minimum supported Rust version to `1.53`
 - Bumped `http-endpoint` dependency to `0.5`
 - Bumped `websocket-util` dependency to `0.10`
