@@ -9,10 +9,8 @@ use chrono::DateTime;
 use num_decimal::Num;
 
 use serde::Deserialize;
-use serde::Serialize;
 
 use time_util::system_time_from_millis_in_new_york;
-use time_util::system_time_to_millis_in_new_york;
 
 use crate::api::response::Response;
 use crate::Str;
@@ -83,14 +81,10 @@ pub struct AggregateReq {
 
 /// A ticker as returned by the
 /// `/v2/aggs/ticker/<symbol>/range/1/<span>/<start>/<end>` endpoint.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Aggregate {
   /// The aggregate's timestamp.
-  #[serde(
-    rename = "t",
-    deserialize_with = "system_time_from_millis_in_new_york",
-    serialize_with = "system_time_to_millis_in_new_york",
-  )]
+  #[serde(rename = "t", deserialize_with = "system_time_from_millis_in_new_york")]
   pub timestamp: SystemTime,
   /// The trade volume during the aggregated time frame.
   ///
@@ -145,7 +139,6 @@ mod tests {
   use std::time::Duration;
 
   use serde_json::from_str as from_json;
-  use serde_json::to_string as to_json;
 
   #[cfg(not(target_arch = "wasm32"))]
   use test_log::test;
@@ -157,8 +150,9 @@ mod tests {
   use crate::Client;
 
 
+  /// Make sure that we can deserialize an `Aggregate`.
   #[test]
-  fn deserialize_serialize_aggregate() {
+  fn deserialize_aggregate() {
     let response = r#"{
   "v": 31315282,
   "o": 102.87,
@@ -183,10 +177,6 @@ mod tests {
     assert_eq!(aggregate.close_price, Num::new(10374, 100));
     assert_eq!(aggregate.high_price, Num::new(10382, 100));
     assert_eq!(aggregate.low_price, Num::new(10265, 100));
-
-    let json = to_json(&aggregate).unwrap();
-    let new = from_json::<Aggregate>(&json).unwrap();
-    assert_eq!(new, aggregate);
   }
 
   #[test]

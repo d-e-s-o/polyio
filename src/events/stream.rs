@@ -10,13 +10,11 @@ use futures::StreamExt;
 use num_decimal::Num;
 
 use serde::Deserialize;
-use serde::Serialize;
 use serde_json::from_slice as from_json_slice;
 use serde_json::from_str as from_json_str;
 use serde_json::Error as JsonError;
 
 use time_util::system_time_from_millis_in_new_york;
-use time_util::system_time_to_millis_in_new_york;
 
 use tracing::debug;
 use tracing::trace;
@@ -34,7 +32,7 @@ use crate::events::subscription::Subscription;
 
 
 /// A data point for a trade.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Trade {
   /// The stock's symbol.
   #[serde(rename = "sym")]
@@ -49,17 +47,13 @@ pub struct Trade {
   #[serde(rename = "s")]
   pub quantity: u64,
   /// The trade's timestamp (in UNIX milliseconds).
-  #[serde(
-    rename = "t",
-    deserialize_with = "system_time_from_millis_in_new_york",
-    serialize_with = "system_time_to_millis_in_new_york",
-  )]
+  #[serde(rename = "t", deserialize_with = "system_time_from_millis_in_new_york")]
   pub timestamp: SystemTime,
 }
 
 
 /// A quote for a stock.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Quote {
   /// The stock's symbol.
   #[serde(rename = "sym")]
@@ -83,18 +77,14 @@ pub struct Quote {
   #[serde(rename = "as")]
   pub ask_quantity: u64,
   /// The quote's timestamp (in UNIX milliseconds).
-  #[serde(
-    rename = "t",
-    deserialize_with = "system_time_from_millis_in_new_york",
-    serialize_with = "system_time_to_millis_in_new_york",
-  )]
+  #[serde(rename = "t", deserialize_with = "system_time_from_millis_in_new_york")]
   pub timestamp: SystemTime,
 }
 
 
 /// An aggregate for a stock.
 // TODO: Not all fields are hooked up.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Aggregate {
   /// The stock's symbol.
   #[serde(rename = "sym")]
@@ -118,18 +108,10 @@ pub struct Aggregate {
   #[serde(rename = "l")]
   pub low_price: Num,
   /// The tick's start timestamp (in UNIX milliseconds).
-  #[serde(
-    rename = "s",
-    deserialize_with = "system_time_from_millis_in_new_york",
-    serialize_with = "system_time_to_millis_in_new_york",
-  )]
+  #[serde(rename = "s", deserialize_with = "system_time_from_millis_in_new_york")]
   pub start_timestamp: SystemTime,
   /// The tick's end timestamp (in UNIX milliseconds).
-  #[serde(
-    rename = "e",
-    deserialize_with = "system_time_from_millis_in_new_york",
-    serialize_with = "system_time_to_millis_in_new_york",
-  )]
+  #[serde(rename = "e", deserialize_with = "system_time_from_millis_in_new_york")]
   pub end_timestamp: SystemTime,
 }
 
@@ -200,7 +182,7 @@ pub(crate) type Messages = Vec<Message>;
 
 
 /// An enum representing the type of event we received from Polygon.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 #[allow(clippy::large_enum_variant)]
 #[serde(tag = "ev")]
 pub enum Event {
@@ -379,7 +361,6 @@ mod tests {
   use futures::TryStreamExt;
 
   use serde_json::from_str as from_json;
-  use serde_json::to_string as to_json;
 
   use test_log::test;
 
@@ -438,8 +419,9 @@ mod tests {
     stream(api_info, subscriptions).await
   }
 
+  /// Check that we can deserialize a `Trade`.
   #[test]
-  fn deserialize_serialize_trade() {
+  fn deserialize_trade() {
     let response = r#"{
       "ev": "T",
       "sym": "SPY",
@@ -460,14 +442,11 @@ mod tests {
       trade.timestamp,
       parse_system_time_from_str("2020-03-06T15:43:22.638Z").unwrap()
     );
-
-    let json = to_json(&trade).unwrap();
-    let new = from_json::<Trade>(&json).unwrap();
-    assert_eq!(new, trade);
   }
 
+  /// Check that we can deserialize a `Quote`.
   #[test]
-  fn deserialize_serialize_quote() {
+  fn deserialize_quote() {
     let response = r#"{
       "ev": "Q",
       "sym": "SPY",
@@ -493,14 +472,11 @@ mod tests {
       quote.timestamp,
       parse_system_time_from_str("2020-03-06T15:36:44.684Z").unwrap()
     );
-
-    let json = to_json(&quote).unwrap();
-    let new = from_json::<Quote>(&json).unwrap();
-    assert_eq!(new, quote);
   }
 
+  /// Check that we can deserialize an `Aggregate`.
   #[test]
-  fn deserialize_serialize_aggregate() {
+  fn deserialize_aggregate() {
     let response = r#"{
       "ev": "A",
       "sym": "SPY",
@@ -536,10 +512,6 @@ mod tests {
       aggregate.end_timestamp,
       parse_system_time_from_str("2020-03-06T15:43:22Z").unwrap()
     );
-
-    let json = to_json(&aggregate).unwrap();
-    let new = from_json::<Aggregate>(&json).unwrap();
-    assert_eq!(new, aggregate);
   }
 
   #[test]
