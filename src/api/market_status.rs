@@ -1,12 +1,8 @@
 // Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::convert::TryFrom as _;
-use std::time::Duration;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
-
 use chrono::DateTime;
+use chrono::Utc;
 
 use serde::de::Deserializer;
 use serde::de::Error;
@@ -16,25 +12,15 @@ use serde::Deserialize;
 use crate::Str;
 
 
-/// Deserialize a time stamp as a "naive local" `SystemTime`, i.e., one
-/// which just drops any time zone offsets.
-fn server_time<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+/// Deserialize a date time from a string.
+fn datetime_from_str<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 where
   D: Deserializer<'de>,
 {
   let time = String::deserialize(deserializer)?;
-  DateTime::parse_from_str(&time, "%Y-%m-%dT%H:%M:%S%z")
+  DateTime::parse_from_rfc3339(&time)
+    .map(|datetime| datetime.with_timezone(&Utc))
     .map_err(|_| Error::invalid_value(Unexpected::Str(&time), &"a date time string"))
-    .and_then(|time| {
-      u64::try_from(time.naive_local().timestamp())
-        .map(|seconds| UNIX_EPOCH + Duration::from_secs(seconds))
-        .map_err(|_| {
-          Error::custom(format!(
-            "seconds in {} could not be converted to unsigned value",
-            time
-          ))
-        })
-    })
 }
 
 
@@ -65,9 +51,9 @@ pub struct Market {
   /// The status of the market as a whole.
   #[serde(rename = "market")]
   pub status: Status,
-  /// The time the news item was published.
-  #[serde(rename = "serverTime", deserialize_with = "server_time")]
-  pub server_time: SystemTime,
+  /// The current server time.
+  #[serde(rename = "serverTime", deserialize_with = "datetime_from_str")]
+  pub server_time: DateTime<Utc>,
 }
 
 
@@ -93,7 +79,6 @@ mod tests {
   use super::*;
 
   use chrono::naive::NaiveTime;
-  use chrono::offset::Utc;
 
   use test_log::test;
 
@@ -104,9 +89,7 @@ mod tests {
   async fn request_market_status() {
     let client = Client::from_env().unwrap();
     let market = client.issue::<Get>(()).await.unwrap();
-    let market_time = DateTime::<Utc>::from(market.server_time)
-      .naive_local()
-      .time();
+    let market_time = market.server_time.naive_local().time();
 
     let open = NaiveTime::from_hms(9, 30, 0);
     let close = NaiveTime::from_hms(16, 00, 0);
