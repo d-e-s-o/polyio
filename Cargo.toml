@@ -21,7 +21,7 @@ A create for interacting with the Polygon API at polygon.io.
 include = ["src/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
 
 [dependencies]
-chrono = {version = "0.4", default-features = false}
+chrono = {version = "0.4", default-features = false, features = ["serde"]}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
@@ -58,6 +58,7 @@ features = [
 ]
 
 [dev-dependencies]
+chrono = {version = "0.4", default-features = false, features = ["clock"]}
 maplit = {version = "1.0", default-features = false}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]

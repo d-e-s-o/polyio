@@ -1,28 +1,17 @@
 // Copyright (C) 2020-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::SystemTime;
-
-use chrono::offset::Utc;
+use chrono::serde::ts_milliseconds::deserialize as datetime_from_timestamp;
+use chrono::Date;
 use chrono::DateTime;
+use chrono::Utc;
 
 use num_decimal::Num;
 
 use serde::Deserialize;
 
-use time_util::system_time_from_millis_in_new_york;
-
 use crate::api::response::Response;
 use crate::Str;
-
-
-/// Format a system time as a date.
-fn format_date(time: &SystemTime) -> String {
-  DateTime::<Utc>::from(*time)
-    .date()
-    .format("%Y-%m-%d")
-    .to_string()
-}
 
 
 /// An enumeration of the various supported time span values.
@@ -69,13 +58,13 @@ pub struct AggregateReq {
   pub time_span: TimeSpan,
   /// The time span multiplier to use.
   pub multiplier: u8,
-  /// The start time to request aggregates for.
-  pub start_time: SystemTime,
-  /// The end time to request aggregates for.
+  /// The start date to request aggregates for.
+  pub start_date: Date<Utc>,
+  /// The end date to request aggregates for.
   ///
   /// Note that the reported the reported aggregates will include
-  /// this time, i.e., the range is inclusive of this end date.
-  pub end_time: SystemTime,
+  /// this date, i.e., the range is inclusive of this end date.
+  pub end_date: Date<Utc>,
 }
 
 
@@ -84,8 +73,8 @@ pub struct AggregateReq {
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Aggregate {
   /// The aggregate's timestamp.
-  #[serde(rename = "t", deserialize_with = "system_time_from_millis_in_new_york")]
-  pub timestamp: SystemTime,
+  #[serde(rename = "t", deserialize_with = "datetime_from_timestamp")]
+  pub timestamp: DateTime<Utc>,
   /// The trade volume during the aggregated time frame.
   ///
   /// This field's type is float because Polygon uses exponential format
@@ -124,8 +113,8 @@ Endpoint! {
       sym = input.symbol,
       mult = input.multiplier,
       span = input.time_span.as_ref(),
-      start = format_date(&input.start_time),
-      end = format_date(&input.end_time),
+      start = input.start_date.format("%Y-%m-%d"),
+      end = input.end_date.format("%Y-%m-%d"),
     ).into()
   }
 }
@@ -136,15 +125,16 @@ mod tests {
   use super::*;
 
   use std::f64::EPSILON;
-  use std::time::Duration;
+  use std::str::FromStr as _;
+
+  use chrono::Duration;
+  use chrono::NaiveDate;
+  use chrono::TimeZone as _;
 
   use serde_json::from_str as from_json;
 
   #[cfg(not(target_arch = "wasm32"))]
   use test_log::test;
-
-  use time_util::parse_system_time_from_date_str;
-  use time_util::parse_system_time_from_str;
 
   #[cfg(not(target_arch = "wasm32"))]
   use crate::Client;
@@ -166,7 +156,7 @@ mod tests {
     let aggregate = from_json::<Aggregate>(response).unwrap();
     assert_eq!(
       aggregate.timestamp,
-      parse_system_time_from_str("2019-02-04T16:00:00Z").unwrap(),
+      DateTime::parse_from_rfc3339("2019-02-04T16:00:00-05:00").unwrap(),
     );
     assert!(
       (aggregate.volume - 31_315_282f64).abs() <= EPSILON,
@@ -219,13 +209,16 @@ mod tests {
   #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_empty_aggregates() {
+    let start = Utc.from_utc_date(&NaiveDate::from_str("2017-01-01").unwrap());
+    let end = Utc.from_utc_date(&NaiveDate::from_str("2017-01-01").unwrap());
+
     let client = Client::from_env().unwrap();
     let request = AggregateReq {
       symbol: "VMW".into(),
       time_span: TimeSpan::Minute,
       multiplier: 5,
-      start_time: parse_system_time_from_date_str("2017-01-01").unwrap(),
-      end_time: parse_system_time_from_date_str("2017-01-01").unwrap(),
+      start_date: start,
+      end_date: end,
     };
 
     let result = client
@@ -242,13 +235,16 @@ mod tests {
   #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_aapl_day_aggregates() {
+    let start = Utc.from_utc_date(&NaiveDate::from_str("2021-11-01").unwrap());
+    let end = Utc.from_utc_date(&NaiveDate::from_str("2021-11-30").unwrap());
+
     let client = Client::from_env().unwrap();
     let request = AggregateReq {
       symbol: "AAPL".into(),
       time_span: TimeSpan::Day,
       multiplier: 1,
-      start_time: parse_system_time_from_date_str("2021-11-01").unwrap(),
-      end_time: parse_system_time_from_date_str("2021-11-30").unwrap(),
+      start_date: start,
+      end_date: end,
     };
 
     let aggregates = client
@@ -263,38 +259,13 @@ mod tests {
     assert_eq!(aggregates.len(), 21);
     assert_eq!(
       aggregates.first().unwrap().timestamp,
-      parse_system_time_from_date_str("2021-11-01").unwrap()
+      // The offset here is only -04:00 because of daylight savings
+      // time (which changed on November 6th).
+      DateTime::parse_from_rfc3339("2021-11-01T00:00:00-04:00").unwrap()
     );
     assert_eq!(
       aggregates.last().unwrap().timestamp,
-      parse_system_time_from_date_str("2021-11-30").unwrap()
-    );
-  }
-
-  #[cfg(not(target_arch = "wasm32"))]
-  #[test(tokio::test)]
-  async fn request_xlk_day_aggregates_daylight_savings() {
-    let client = Client::from_env().unwrap();
-    let request = AggregateReq {
-      symbol: "XLK".into(),
-      time_span: TimeSpan::Day,
-      multiplier: 1,
-      start_time: parse_system_time_from_date_str("2020-09-07").unwrap(),
-      end_time: parse_system_time_from_date_str("2020-09-08").unwrap(),
-    };
-
-    let aggregates = client
-      .issue::<Get>(request)
-      .await
-      .unwrap()
-      .into_result()
-      .unwrap()
-      .unwrap();
-
-    assert_eq!(aggregates.len(), 1);
-    assert_eq!(
-      aggregates.first().unwrap().timestamp,
-      parse_system_time_from_date_str("2020-09-08").unwrap()
+      DateTime::parse_from_rfc3339("2021-11-30T00:00:00-05:00").unwrap()
     );
   }
 
@@ -302,13 +273,13 @@ mod tests {
   #[test(tokio::test)]
   async fn request_non_existent_aggregates() {
     let client = Client::from_env().unwrap();
-    let today = SystemTime::now();
+    let today = Utc::today();
     let request = AggregateReq {
       symbol: "SPWR".into(),
       time_span: TimeSpan::Day,
       multiplier: 1,
-      start_time: today + Duration::from_secs(24 * 60 * 60),
-      end_time: today + 7 * Duration::from_secs(24 * 60 * 60),
+      start_date: today + Duration::days(1),
+      end_date: today + Duration::days(7),
     };
 
     let aggregates = client
@@ -324,13 +295,16 @@ mod tests {
   #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_spy_5min_aggregates() {
+    let start = Utc.from_utc_date(&NaiveDate::from_str("2021-12-01").unwrap());
+    let end = Utc.from_utc_date(&NaiveDate::from_str("2021-12-02").unwrap());
+
     let client = Client::from_env().unwrap();
     let request = AggregateReq {
       symbol: "SPY".into(),
       time_span: TimeSpan::Minute,
       multiplier: 5,
-      start_time: parse_system_time_from_date_str("2021-12-01").unwrap(),
-      end_time: parse_system_time_from_date_str("2021-12-02").unwrap(),
+      start_date: start,
+      end_date: end,
     };
 
     let aggregates = client
@@ -347,16 +321,19 @@ mod tests {
   #[cfg(not(target_arch = "wasm32"))]
   #[test(tokio::test)]
   async fn request_xlk_hour_aggregates() {
+    // Note that the Polygon API actually only supports retrieval of
+    // data for the entire day. The granularity will still be an hour,
+    // though.
+    let start = Utc.from_utc_date(&NaiveDate::from_str("2021-12-06").unwrap());
+    let end = Utc.from_utc_date(&NaiveDate::from_str("2021-12-06").unwrap());
+
     let client = Client::from_env().unwrap();
     let request = AggregateReq {
       symbol: "XLK".into(),
       time_span: TimeSpan::Hour,
       multiplier: 1,
-      // Note that the Polygon API actually only supports retrieval of
-      // data for the entire day. The granularity will still be an hour,
-      // though.
-      start_time: parse_system_time_from_date_str("2021-12-06").unwrap(),
-      end_time: parse_system_time_from_date_str("2021-12-06").unwrap(),
+      start_date: start,
+      end_date: end,
     };
 
     let aggregates = client
@@ -371,63 +348,63 @@ mod tests {
     assert_eq!(aggregates.len(), 15);
     assert_eq!(
       aggregates[0].timestamp,
-      parse_system_time_from_str("2021-12-06T04:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T04:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[1].timestamp,
-      parse_system_time_from_str("2021-12-06T05:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T05:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[2].timestamp,
-      parse_system_time_from_str("2021-12-06T06:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T06:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[3].timestamp,
-      parse_system_time_from_str("2021-12-06T07:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T07:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[4].timestamp,
-      parse_system_time_from_str("2021-12-06T08:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T08:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[5].timestamp,
-      parse_system_time_from_str("2021-12-06T09:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T09:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[6].timestamp,
-      parse_system_time_from_str("2021-12-06T10:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T10:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[7].timestamp,
-      parse_system_time_from_str("2021-12-06T11:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T11:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[8].timestamp,
-      parse_system_time_from_str("2021-12-06T12:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T12:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[9].timestamp,
-      parse_system_time_from_str("2021-12-06T13:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T13:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[10].timestamp,
-      parse_system_time_from_str("2021-12-06T14:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T14:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[11].timestamp,
-      parse_system_time_from_str("2021-12-06T15:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T15:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[12].timestamp,
-      parse_system_time_from_str("2021-12-06T16:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T16:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[13].timestamp,
-      parse_system_time_from_str("2021-12-06T18:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T18:00:00-05:00").unwrap()
     );
     assert_eq!(
       aggregates[14].timestamp,
-      parse_system_time_from_str("2021-12-06T19:00:00Z").unwrap()
+      DateTime::parse_from_rfc3339("2021-12-06T19:00:00-05:00").unwrap()
     );
   }
 
@@ -437,13 +414,13 @@ mod tests {
   #[test(tokio::test)]
   async fn todays_data() {
     let client = Client::from_env().unwrap();
-    let today = SystemTime::now();
+    let today = Utc::today();
     let request = AggregateReq {
       symbol: "SPY".into(),
       time_span: TimeSpan::Hour,
       multiplier: 1,
-      start_time: today,
-      end_time: today + Duration::from_secs(24 * 60 * 60),
+      start_date: today,
+      end_date: today + Duration::days(1),
     };
 
     let _aggregates = client
