@@ -7,32 +7,105 @@
 # https://github.com/rust-lang/docker-rust/blob/21171fdd92e29acb045a41cd58b0d30d66aeaa7f/1.54.0/buster/Dockerfile
 image: "rust:1.54.0"
 
-stages:
-  - build
-  - test
+variables:
+  FF_USE_FASTZIP: "true"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
+  CACHE_COMPRESSION_LEVEL: "fast"
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  # Build without debug information enabled to decrease compilation time
+  # and binary sizes in CI. This option is assumed to only have marginal
+  # effects on the generated code, likely only in terms of section
+  # arrangement. See
+  # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+  # https://doc.rust-lang.org/rustc/codegen-options/index.html#debuginfo
+  RUSTFLAGS: '-C debuginfo=0'
 
-build-native:cargo:
-  stage: build
-  artifacts:
-    paths:
-      - target/
+.crates-io-cache: &crates-io-cache
+  key: crates-io-cache
+  paths:
+    # See https://doc.rust-lang.org/cargo/guide/cargo-home.html#caching-the-cargo-home-in-ci
+    - $CARGO_HOME/bin/
+    - $CARGO_HOME/git/db/
+    - $CARGO_HOME/registry/index/
+    - $CARGO_HOME/registry/cache/
+  policy: pull-push
+
+.target-debug-native-cache: &target-debug-native-cache
+  key: target-debug-native-cache-$CI_JOB_IMAGE
+  paths:
+    - target/debug/
+    - Cargo.lock
+  policy: pull-push
+
+.target-debug-wasm-cache: &target-debug-wasm-cache
+  key: target-debug-wasm-cache-$CI_JOB_IMAGE
+  paths:
+    - wasm-bindgen-test-runner/bin/
+    - wasm-bindgen-test-runner/version
+    - wasm-bindgen-test-runner/wasm-bindgen.tar.gz
+    - target/debug/
+    - target/wasm32-unknown-unknown/debug/
+    - Cargo.lock
+  policy: pull-push
+
+.target-release-native-cache: &target-release-native-cache
+  key: target-release-native-cache-$CI_JOB_IMAGE
+  paths:
+    - target/release/
+    - Cargo.lock
+  policy: pull-push
+
+.target-release-wasm-cache: &target-release-wasm-cache
+  key: target-release-wasm-cache-$CI_JOB_IMAGE
+  paths:
+    - target/release/
+    - target/wasm32-unknown-unknown/release/
+    - Cargo.lock
+  policy: pull-push
+
+build-debug-native:cargo:
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-debug-native-cache
   script:
   - rustc --version && cargo --version
-  - cargo build --lib --tests --verbose
-  - cargo build --lib --tests --verbose --release
+  - cargo build --lib --tests
 
-build-wasm32:cargo:
-  stage: build
+build-release-native:cargo:
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-release-native-cache
+  script:
+  - rustc --version && cargo --version
+  - cargo build --lib --tests --release
+
+build-debug-wasm32:cargo:
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-debug-wasm-cache
   script:
   - rustup target add wasm32-unknown-unknown
   - rustc --version && cargo --version
-  - cargo build --target=wasm32-unknown-unknown --lib --tests --verbose
-  - cargo build --target=wasm32-unknown-unknown --lib --tests --verbose --release
+  - cargo build --target=wasm32-unknown-unknown --lib --tests
+
+build-release-wasm32:cargo:
+  cache:
+  - <<: *crates-io-cache
+  - <<: *target-release-wasm-cache
+  script:
+  - rustup target add wasm32-unknown-unknown
+  - rustc --version && cargo --version
+  - cargo build --target=wasm32-unknown-unknown --lib --tests --release
 
 lint:clippy:
-  stage: test
-  dependencies:
-    - build-native:cargo
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-debug-native-cache
+    policy: pull
   script:
   - rustup component add clippy
   - cargo clippy --all-targets --all-features -- -D warnings
