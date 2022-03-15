@@ -1,7 +1,9 @@
 // Copyright (C) 2019-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::SystemTime;
+use chrono::serde::ts_milliseconds::deserialize as datetime_from_timestamp;
+use chrono::DateTime;
+use chrono::Utc;
 
 use futures::stream::unfold;
 use futures::Stream;
@@ -13,8 +15,6 @@ use serde::Deserialize;
 use serde_json::from_slice as from_json_slice;
 use serde_json::from_str as from_json_str;
 use serde_json::Error as JsonError;
-
-use time_util::system_time_from_millis_in_new_york;
 
 use tracing::debug;
 use tracing::trace;
@@ -46,9 +46,9 @@ pub struct Trade {
   /// The number of shares traded.
   #[serde(rename = "s")]
   pub quantity: u64,
-  /// The trade's timestamp (in UNIX milliseconds).
-  #[serde(rename = "t", deserialize_with = "system_time_from_millis_in_new_york")]
-  pub timestamp: SystemTime,
+  /// The trade's timestamp.
+  #[serde(rename = "t", deserialize_with = "datetime_from_timestamp")]
+  pub timestamp: DateTime<Utc>,
 }
 
 
@@ -76,9 +76,9 @@ pub struct Quote {
   /// The bid quantity
   #[serde(rename = "as")]
   pub ask_quantity: u64,
-  /// The quote's timestamp (in UNIX milliseconds).
-  #[serde(rename = "t", deserialize_with = "system_time_from_millis_in_new_york")]
-  pub timestamp: SystemTime,
+  /// The quote's timestamp.
+  #[serde(rename = "t", deserialize_with = "datetime_from_timestamp")]
+  pub timestamp: DateTime<Utc>,
 }
 
 
@@ -107,12 +107,12 @@ pub struct Aggregate {
   /// The tick's low price.
   #[serde(rename = "l")]
   pub low_price: Num,
-  /// The tick's start timestamp (in UNIX milliseconds).
-  #[serde(rename = "s", deserialize_with = "system_time_from_millis_in_new_york")]
-  pub start_timestamp: SystemTime,
-  /// The tick's end timestamp (in UNIX milliseconds).
-  #[serde(rename = "e", deserialize_with = "system_time_from_millis_in_new_york")]
-  pub end_timestamp: SystemTime,
+  /// The tick's start timestamp.
+  #[serde(rename = "s", deserialize_with = "datetime_from_timestamp")]
+  pub start_timestamp: DateTime<Utc>,
+  /// The tick's end timestamp.
+  #[serde(rename = "e", deserialize_with = "datetime_from_timestamp")]
+  pub end_timestamp: DateTime<Utc>,
 }
 
 
@@ -364,8 +364,6 @@ mod tests {
 
   use test_log::test;
 
-  use time_util::parse_system_time_from_str;
-
   use tungstenite::tungstenite::Message as WebSocketMessage;
 
   use url::Url;
@@ -440,7 +438,7 @@ mod tests {
     assert_eq!(trade.quantity, 100);
     assert_eq!(
       trade.timestamp,
-      parse_system_time_from_str("2020-03-06T15:43:22.638Z").unwrap()
+      DateTime::parse_from_rfc3339("2020-03-06T15:43:22.638-05:00").unwrap()
     );
   }
 
@@ -470,7 +468,7 @@ mod tests {
     assert_eq!(quote.ask_quantity, 2);
     assert_eq!(
       quote.timestamp,
-      parse_system_time_from_str("2020-03-06T15:36:44.684Z").unwrap()
+      DateTime::parse_from_rfc3339("2020-03-06T15:36:44.684-05:00").unwrap()
     );
   }
 
@@ -506,11 +504,11 @@ mod tests {
     assert_eq!(aggregate.low_price, Num::new(29368, 100));
     assert_eq!(
       aggregate.start_timestamp,
-      parse_system_time_from_str("2020-03-06T15:43:21Z").unwrap()
+      DateTime::parse_from_rfc3339("2020-03-06T15:43:21-05:00").unwrap()
     );
     assert_eq!(
       aggregate.end_timestamp,
-      parse_system_time_from_str("2020-03-06T15:43:22Z").unwrap()
+      DateTime::parse_from_rfc3339("2020-03-06T15:43:22-05:00").unwrap()
     );
   }
 
