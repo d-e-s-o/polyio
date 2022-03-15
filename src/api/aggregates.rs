@@ -153,7 +153,7 @@ mod tests {
   "n": 4
 }"#;
 
-    let aggregate = from_json::<Aggregate>(&response).unwrap();
+    let aggregate = from_json::<Aggregate>(response).unwrap();
     assert_eq!(
       aggregate.timestamp,
       DateTime::parse_from_rfc3339("2019-02-04T16:00:00-05:00").unwrap(),
@@ -190,7 +190,7 @@ mod tests {
   ]
 }"#;
 
-    let mut aggregates = from_json::<GetResponse>(&response)
+    let mut aggregates = from_json::<GetResponse>(response)
       .unwrap()
       .into_result()
       .unwrap()

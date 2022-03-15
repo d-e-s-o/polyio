@@ -146,7 +146,7 @@ mod hype {
   where
     E: Endpoint,
   {
-    let req = request::<E>(&api_info, &input).map_err(RequestError::Endpoint)?;
+    let req = request::<E>(api_info, &input).map_err(RequestError::Endpoint)?;
     let span = span!(
       Level::DEBUG,
       "request",

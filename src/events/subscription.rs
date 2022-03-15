@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2022 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Display;
@@ -48,7 +48,7 @@ impl Subscription {
       Subscription::SecondAggregates(stock)
       | Subscription::MinuteAggregates(stock)
       | Subscription::Trades(stock)
-      | Subscription::Quotes(stock) => &stock,
+      | Subscription::Quotes(stock) => stock,
     }
   }
 }
@@ -56,10 +56,10 @@ impl Subscription {
 impl Display for Subscription {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Subscription::SecondAggregates(stock) => write!(fmt, "A.{}", stock.to_string()),
-      Subscription::MinuteAggregates(stock) => write!(fmt, "AM.{}", stock.to_string()),
-      Subscription::Trades(stock) => write!(fmt, "T.{}", stock.to_string()),
-      Subscription::Quotes(stock) => write!(fmt, "Q.{}", stock.to_string()),
+      Subscription::SecondAggregates(stock) => write!(fmt, "A.{}", stock),
+      Subscription::MinuteAggregates(stock) => write!(fmt, "AM.{}", stock),
+      Subscription::Trades(stock) => write!(fmt, "T.{}", stock),
+      Subscription::Quotes(stock) => write!(fmt, "Q.{}", stock),
     }
   }
 }
