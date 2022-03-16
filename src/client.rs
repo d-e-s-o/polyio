@@ -248,14 +248,12 @@ mod wasm {
 
     async move {
       debug!("requesting");
-      trace!(request = debug(&req));
 
       let response = JsFuture::from(client.fetch_with_request(&req)).await?;
       let response = response.dyn_into::<Response>()?;
 
       let status = response.status();
       debug!(status = debug(&status));
-      trace!(response = debug(&response));
 
       let json = JsFuture::from(response.json().unwrap()).await?;
       let body = &String::from(&stringify(&json)?);
