@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.13.0
+------
 - Migrated usage of `SystemTime` date times to `chrono` types
 - Converted `api::Response` type into an `enum`
 - Removed serialization support from event and aggregate data types
