@@ -254,12 +254,12 @@ mod wasm {
 
       let status = response.status();
       debug!(status = debug(&status));
+      let status = StatusCode::from_u16(status)?;
 
       let json = JsFuture::from(response.json().unwrap()).await?;
       let body = &String::from(&stringify(&json)?);
       trace!(body = display(&body));
 
-      let status = StatusCode::from_u16(status)?;
       E::evaluate(status, body.as_bytes()).map_err(RequestError::Endpoint)
     }
     .instrument(span)
