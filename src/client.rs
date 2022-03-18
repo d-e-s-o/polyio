@@ -256,6 +256,8 @@ mod wasm {
       debug!(status = debug(&status));
       let status = StatusCode::from_u16(status)?;
 
+      // TODO: We shouldn't be going through a string here. See
+      //       `hist-cache-http` for how to do it properly.
       let json = JsFuture::from(response.json().unwrap()).await?;
       let body = &String::from(&stringify(&json)?);
       trace!(body = display(&body));
