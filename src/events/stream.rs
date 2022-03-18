@@ -354,6 +354,7 @@ mod tests {
   use super::*;
 
   use std::future::Future;
+  use std::time::Duration;
 
   use futures::future::ready;
   use futures::SinkExt;
@@ -364,6 +365,8 @@ mod tests {
 
   use test_log::test;
 
+  use tokio::time::timeout;
+
   use tungstenite::tungstenite::Message as WebSocketMessage;
 
   use url::Url;
@@ -372,6 +375,9 @@ mod tests {
   use websocket_util::test::WebSocketStream;
 
   use crate::events::subscription::Stock;
+
+  #[cfg(not(target_arch = "wasm32"))]
+  use crate::Client;
 
   const API_KEY: &str = "USER12345678";
   const CONNECTED_MSG: &str =
@@ -715,5 +721,32 @@ mod tests {
     assert!(stream.next().await.unwrap().is_ok());
     assert!(stream.next().await.unwrap().is_err());
     assert!(stream.next().await.is_none());
+  }
+
+  /// Check that we can stream realtime market data quotes.
+  #[cfg(not(target_arch = "wasm32"))]
+  #[test(tokio::test)]
+  #[ignore = "requires paid subscription"]
+  async fn stream_market_data_updates() {
+    let client = Client::from_env().unwrap();
+    let subscriptions = vec![Subscription::Quotes(Stock::Symbol("SPY".into()))];
+
+    let read = client
+      .subscribe(subscriptions)
+      .await
+      .unwrap()
+      .map_err(Error::WebSocket)
+      .try_for_each(|result| async {
+        result
+          .map(|event| match event {
+            Event::Quote(..) => {},
+            _ => panic!("received unexpected event: {:?}", event),
+          })
+          .map_err(Error::Json)
+      });
+
+    if timeout(Duration::from_millis(50), read).await.is_ok() {
+      panic!("realtime data stream got exhausted unexpectedly")
+    }
   }
 }
